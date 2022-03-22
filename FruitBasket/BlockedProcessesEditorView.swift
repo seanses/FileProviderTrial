@@ -34,7 +34,8 @@ struct BlockedProcessesEditorView: View {
 
     private func add() {
         guard !newProcessName.isEmpty else { return }
-        // If the blocked processes already contains the process name, there is nothing to do.
+        // If the blocked processes already contain the process name, there's
+        // nothing to do.
         guard !blockedProcesses.value.contains(newProcessName) else { return }
         blockedProcesses.value.insert(newProcessName, at: 0)
         newProcessName = ""

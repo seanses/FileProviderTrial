@@ -39,10 +39,10 @@ class AuthenticationViewController: NSViewController, ConcreteActionViewControll
     }
 
     @IBAction func authenticate(_ sender: Any) {
-        async {
+        Task {
             // Look up the secret via the server and set it.
-            // This is meant to be a demonstration of authentication related flows,
-            // and is intentionally insecure.
+            // This is meant to be a demonstration of authentication-related
+            // flows and is intentionally insecure.
             let conn = DomainConnection(domainIdentifier: self.actionViewController.domain.identifier.rawValue, secret: "",
                                               hostname: UserDefaults.sharedContainerDefaults.hostname, port: self.port)
             let avc = self.actionViewController!

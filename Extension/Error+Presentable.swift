@@ -2,7 +2,8 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-An extension the provides a mapping from common errors to Objective-C errors.
+An extension that provides a map from common errors to Objective-C
+            errors.
 */
 
 import Common

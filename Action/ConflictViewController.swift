@@ -129,7 +129,7 @@ public class ConflictViewController: NSViewController, ConcreteActionViewControl
         itemIdentifier = firstItem
 
         self.logger.debug("⭐️ fetching versions")
-        async {
+        Task {
             do {
                 let proxy = try await self.withServiceConnection()
                 let (versions, baseVersion) = try await proxy.versions(for: self.itemURL)
@@ -165,7 +165,7 @@ public class ConflictViewController: NSViewController, ConcreteActionViewControl
             return
         }
         closeButton.isEnabled = false
-        async {
+        Task {
             do {
                 let proxy = try await self.withServiceConnection()
                 try await proxy.keep(versions: selected.map({ $0.contentVersion as NSNumber }), baseVersion: baseVersion as NSData, for: self.itemURL)

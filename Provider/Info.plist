@@ -191,7 +191,46 @@
 		<array>
 			<dict>
 				<key>ActivationRule</key>
-				<string>sourceItem.filename CONTAINS &quot;maynotcreate&quot; AND action == &quot;Create&quot;</string>
+				<string>destinationItem.filename CONTAINS "-" AND sourceItem.filename CONTAINS "nohyphen" AND action == "Rename"</string>
+				<key>SubInteractions</key>
+				<array>
+					<dict>
+						<key>ActivationRule</key>
+						<string>sourceItemsCount == 1</string>
+						<key>Alert</key>
+						<dict>
+							<key>LocalizedRecoveryOptions</key>
+							<dict>
+								<key>Cancel</key>
+								<string>Do Not Rename</string>
+							</dict>
+							<key>LocalizedSubTitle</key>
+							<string>This item may not contain a hyphen in the filename.</string>
+							<key>LocalizedTitle</key>
+							<string>Item may not have a hyphen in the filename.</string>
+						</dict>
+					</dict>
+					<dict>
+						<key>ActivationRule</key>
+						<string>sourceItemsCount &gt; 1</string>
+						<key>Alert</key>
+						<dict>
+							<key>LocalizedRecoveryOptions</key>
+							<dict>
+								<key>Cancel</key>
+								<string>Do Not Rename</string>
+							</dict>
+							<key>LocalizedSubTitle</key>
+							<string>These items may not contain a hyphen in the filename.</string>
+							<key>LocalizedTitle</key>
+							<string>Items may not have a hyphen in the filename.</string>
+						</dict>
+					</dict>
+				</array>
+			</dict>
+			<dict>
+				<key>ActivationRule</key>
+				<string>sourceItem.filename CONTAINS "maynotcreate" AND action == "Create"</string>
 				<key>SubInteractions</key>
 				<array>
 					<dict>
@@ -316,7 +355,7 @@
 			</dict>
 			<dict>
 				<key>ActivationRule</key>
-				<string>(destinationItem.inheritedUserInfo.isShared.inherited == YES OR destinationItem.userInfo.isShared.inherited == YES) AND (action == &quot;Create&quot; OR action == &quot;MoveIn&quot; OR action == &quot;Move&quot; OR action == &quot;CopyIn&quot;)</string>
+				<string>(destinationItem.resolvedUserInfo.isShared.inherited == YES) AND (action == &quot;Create&quot; OR action == &quot;MoveIn&quot; OR action == &quot;Move&quot; OR action == &quot;CopyIn&quot;)</string>
 				<key>SubInteractions</key>
 				<array>
 					<dict>

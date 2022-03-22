@@ -2,7 +2,7 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-String descriptions for common filesystem objects.
+String descriptions for common file system objects.
 */
 
 import Foundation

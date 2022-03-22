@@ -68,7 +68,7 @@ class RemoveDomainWindowController: NSWindowController {
         self.spinner.startAnimation(nil)
         group.enter()
 
-        async {
+        Task {
             defer {
                 group.leave()
             }

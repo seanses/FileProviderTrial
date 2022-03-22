@@ -2,7 +2,7 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-Domain specific implementations of the cloud file server APIs.
+Domain-specific implementations of the cloud file server APIs.
 */
 
 import Foundation
@@ -230,9 +230,10 @@ extension DomainBackend {
             if param.type == .folder || param.type == .root {
                 file = try db.updateFile(identifier: identifier, revision: version, metadata: param.metadata)
             } else {
-                // If caller didn't pass a contentStorageTypeParameter, there is
-                // nothing to persist in data side. This can occur, for example,
-                // when createItem is called without .contents in the fields parameter.
+                // If the caller didn't pass a contentStorageTypeParameter,
+                // there's nothing to persist in the data side. This can occur,
+                // for example, when createItem is called without .contents in
+                // the fields parameter.
                 if let contentStorageTypeParameter = contentStorageTypeParameter {
                     let temp = try db.updateFile(identifier: identifier, revision: version,
                                                  contentStorageTypeParameter: contentStorageTypeParameter,
@@ -337,8 +338,8 @@ extension DomainBackend {
         }
 
         let data: Data
-        if !param.resourceFork {
-            data = try db.fetchItemContents(identifier: item.id, contentRevision: item.revision.content)
+        if param.resourceFork != true {
+            data = try db.fetchItemContents(identifier: item.id, contentRevision: item.revision.content, range: param.range)
         } else {
             data = try db.fetchItemResourceFork(identifier: item.id, contentRevision: item.revision.content)
         }

@@ -2,7 +2,7 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-A component used by the server to provide a local cloud files server.
+A component used by the server to provide a local server for cloud files.
 */
 
 import Foundation
@@ -81,14 +81,14 @@ public class BackendDispatch: BackendCallRegistration {
     var backends = [String: DomainBackend]()
 
     public subscript(identifier: String) -> DomainBackend? {
-        set {
-            synchronized(self) {
-                backends[identifier] = newValue
-            }
-        }
         get {
             synchronized(self) {
                 return backends[identifier]
+            }
+        }
+        set {
+            synchronized(self) {
+                backends[identifier] = newValue
             }
         }
     }
@@ -241,7 +241,8 @@ public class BackendDispatch: BackendCallRegistration {
                     // Calculate the bandwidth every iteration, so that user modifications
                     // during the server response take effect.
                     let outgoingBandwidthOptional = UserDefaults.sharedContainerDefaults.outgoingBandwidth
-                    // If outgoing bandwidth is not set, or it is 0, write the remainder of the file.
+                    // If outgoing bandwidth isn't set or is 0, write the
+                    // remainder of the file.
                     guard let outgoingBandwidth = outgoingBandwidthOptional,
                           outgoingBandwidth > 0 else {
                         let subdata = data.subdata(in: amountWritten..<data.count)

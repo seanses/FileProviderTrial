@@ -47,7 +47,7 @@ public struct DomainConnection {
                                                            _ block: @escaping (CallResult<ParameterType.ReturnType>) async -> Void)
                                                             -> Progress {
         makeJSONCallGeneric(parameter, data, shouldRetry: shouldRetry) { result in
-            async {
+            Task {
                 await block(result.map { tuple in return tuple.0 })
             }
         }

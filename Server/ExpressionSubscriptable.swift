@@ -40,7 +40,7 @@ struct RowWrapper: ExpressionSubscriptable {
 
     /// Returns a row’s value for the given column.
     ///
-    /// - Parameter column: An expression representing a column selected in a Query.
+    /// - Parameter column: An expression representing a column selected in a query.
     ///
     /// - Returns: The value for the given column.
     public func get<V: Value>(_ column: Expression<V>) throws -> V {

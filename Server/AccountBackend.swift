@@ -2,7 +2,7 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-Account specific implementations of the cloud file server APIs.
+Account-specific implementations of the cloud file server APIs.
 */
 
 import Foundation

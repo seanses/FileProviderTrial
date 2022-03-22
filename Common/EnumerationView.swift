@@ -2,7 +2,7 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-View and notifications for viewing pending and materialized items.
+The view and notifications for viewing pending and materialized items.
 */
 
 import SwiftUI

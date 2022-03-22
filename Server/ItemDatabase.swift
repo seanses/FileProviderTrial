@@ -76,14 +76,14 @@ struct Synchronized<T> {
         innerValue = value
     }
     var wrappedValue: T {
-        set {
-            synchronized(lock) {
-                innerValue = newValue
-            }
-        }
         get {
             synchronized(lock) {
                 return innerValue
+            }
+        }
+        set {
+            synchronized(lock) {
+                innerValue = newValue
             }
         }
     }
@@ -232,9 +232,9 @@ public class ItemDatabase {
 
             conn.userVersion = dbVersion
 
-            // Reserve some item ids. These item ids should never be handed out
+            // Reserve some item IDs. These item IDs should never be handed out
             // to a provider, but are used on the provider side (0 is the root,
-            // 1 is the trash). The provider's ids are translated during encoding
+            // 1 is the trash). The provider's IDs are translated during encoding
             // and decoding.
             for i in 0..<reservedItemCount {
                 try conn.run(itemsTable.insert(idKey <- ItemIdentifier(Int64(i)), nameKey <- "reserved", parentKey <- 0, rankKey <- allocateNewRank(),
@@ -304,7 +304,8 @@ public class ItemDatabase {
 
             for revision in versions {
                 if revision == baseItem[contentRevKey] {
-                    // On currently alive item, update the rank and metadata revision.
+                    // On the currently alive item, update the rank and metadata
+                    // revision.
                     try conn.run(itemsTable.where(idKey == item).update(rankKey <- allocateNewRank(), revKey++))
                     continue
                 }
@@ -315,7 +316,7 @@ public class ItemDatabase {
                 // Make a new item name.
                 let name: String
                 if versions.count == 1 {
-                    // If only one version is being kept, use original name.
+                    // If only one version is being kept, use the original name.
                     name = baseItem[nameKey]
                 } else {
                     // When keeping multiple versions, name them according to their origin.
@@ -330,7 +331,8 @@ public class ItemDatabase {
                 try conn.run(filter.update(idKey <- newItem, conflictKey <- false))
             }
 
-            // If the array of versions does not contain the alive item's version, remove it.
+            // If the array of versions doesn't contain the alive item's
+            // version, remove it.
             if !versions.contains(where: { (revision) -> Bool in
                 revision == baseItem[contentRevKey]
             }) {
@@ -558,7 +560,8 @@ public class ItemDatabase {
             if changeType == .create {
                 for row in rows {
                     if row[nameKey].hasPrefix(".") {
-                        // Creating a new item inside a hidden subfolder result in a merge.
+                        // Creating a new item inside a hidden subfolder results
+                        // in a merge.
                         return .merge
                     }
                 }

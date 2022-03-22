@@ -87,8 +87,11 @@ class ItemEnumerator: NSObject, NSFileProviderEnumerator {
                 // Ignore failures.
                 break
             case .success(let res):
-                // If the observed item is a file and it has the type of an .docx
-                // document, schedule a regular ping to the server to keep a lock alive.
+                // When an application presents a file, the system opens an enumerator
+                // on the file to track it. FruitBasket then displays a lock icon
+                // in Finder next to any items that are in use. FruitBasket implements
+                // the icon as an `NSFileProviderItemDecoration`, using the `inUseDecoration`
+                // decoration identifier.
                 if res.item.type == .file,
                     let type = UTType(tag: (res.item.name as NSString).pathExtension, tagClass: .filenameExtension, conformingTo: .data),
                     ItemEnumerator.shouldTrackPresentationStatus(for: type) {
@@ -169,7 +172,7 @@ class ItemEnumerator: NSObject, NSFileProviderEnumerator {
         }
 
         let param = DomainService.ListChangesParameter(folderIdentifier: enumeratedItemIdentifier, recursive: recursive, startingRank: rankToken)
-        async {
+        Task {
             do {
                 let response = try await self.connection.makeJSONCall(param)
                 if let deleted = response.deletedEntries,
@@ -197,7 +200,7 @@ class WorkingSetEnumerator: ItemEnumerator {
 
 class TrashEnumerator: ItemEnumerator {
     init(connection: DomainConnection) {
-        // Enumerate everything from the trash. This is not recursive;
+        // Enumerate everything from the trash. This isn't recursive;
         // the File Provider framework will ask for children if relevant.
         super.init(enumeratedItemIdentifier: .trashContainer, connection: connection, recursive: false)
     }

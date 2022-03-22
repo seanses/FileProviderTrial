@@ -2,7 +2,7 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-Parameter and return values for domain-related requests to the local HTTP server.
+The parameter and return values for domain-related requests to the local HTTP server.
 */
 
 import FileProvider
@@ -97,9 +97,10 @@ public enum DomainService {
             case trash
         }
 
-        // When encoding ItemIdentifiers to their wire format, encode it as
+        // When encoding ItemIdentifiers to their wire format, encode as
         // .root=true if the item is the encoding domain's root item. This
-        // ensures that the recipient will see the item as their own local root item identifier.
+        // ensures that the recipient sees the item as their own local root item
+        // identifier.
         public func encode(to encoder: Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
             guard let rootIdentifier = encoder.userInfo[rootItemCodingInfoKey] as? DomainService.ItemIdentifier,
@@ -441,9 +442,9 @@ extension DomainService {
         }
     }
 
-    // This does not include metadata to simulate a provider that does not do metadata
-    // and content modifications together. However, it does break out initial upload
-    // from subsequent updates.
+    // This doesn't include metadata to simulate a provider that doesn't provide
+    // metadata and content modifications together. However, it does break out
+    // the initial upload from subsequent updates.
     public struct ModifyContentsParameter: JSONParameter {
         public typealias ReturnType = ModifyContentsReturn
         public static let endpoint = "modifyContents"
@@ -579,12 +580,14 @@ extension DomainService {
         public static let method = JSONMethod.GET
         public let itemIdentifier: ItemIdentifier
         public let requestedRevision: Version?
-        public let resourceFork: Bool
+        public let resourceFork: Bool?
+        public let range: NSRange?
 
-        public init(itemIdentifier: ItemIdentifier, requestedRevision: Version?, resourceFork: Bool = false) {
+        public init(itemIdentifier: ItemIdentifier, requestedRevision: Version?, resourceFork: Bool = false, range: NSRange? = nil) {
             self.itemIdentifier = itemIdentifier
             self.requestedRevision = requestedRevision
             self.resourceFork = resourceFork
+            self.range = range
         }
     }
 
@@ -766,8 +769,8 @@ extension DomainService {
             return String(cString: xattr_name_with_flags(base, XATTR_FLAG_SYNCABLE | XATTR_FLAG_NO_EXPORT))
         }()
         public static let pinnedXattr: String = {
-            // Pinning state is stored as an xattr and syncs across domains,
-            // which is quite unrealistic
+            // The pinning state is stored as an xattr and syncs across domains,
+            // which is quite unrealistic.
             let base = "com.example.fruitbasket.pinned"
             return String(cString: xattr_name_with_flags(base, XATTR_FLAG_SYNCABLE | XATTR_FLAG_NO_EXPORT))
         }()
@@ -800,9 +803,10 @@ extension DomainService {
         public static let endpoint = "lock/ping"
         public static let method = JSONMethod.POST
 
-        // The file gets unlocked automatically if we don't hear from the client for this long
+        // The file gets unlocked automatically if the client doesn't respond
+        // before the unlock interval expires.
         public static let unlockInterval = TimeInterval(30)
-        // The interval for client pings
+        // The interval for client pings.
         public static let pingInterval = unlockInterval * (2.0 / 3.0)
 
         public let identifier: ItemIdentifier

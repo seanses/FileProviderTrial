@@ -2,7 +2,7 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-A controller that provide the user interface for actions.
+A controller that provides the user interface for actions.
 */
 
 import Cocoa
@@ -48,7 +48,7 @@ public class ActionViewController: FPUIActionExtensionViewController {
     }
 
     public override func prepare(forAction actionIdentifier: String, itemIdentifiers: [NSFileProviderItemIdentifier]) {
-        // Each action that is implemented must be added to this switch statement.
+        // Each action must be added to this switch statement.
         switch actionIdentifier {
         case "com.example.apple-samplecode.FruitBasket.ConflictAction":
             prepare(ConflictViewController(itemIdentifiers))

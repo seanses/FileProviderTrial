@@ -24,27 +24,38 @@ extension ItemDatabase {
                                                          nameKey == name && contentStorageTypeKey != .resourceFork)) else { return nil }
         return Entry(row, self)
     }
-    
-    func contentsFromRow(_ contentsRow: ExpressionSubscriptable, externalIdentifier: Int64? = nil) throws -> Data {
+
+    func contentsFromRow(_ contentsRow: ExpressionSubscriptable, externalIdentifier: Int64? = nil, range: NSRange? = nil) throws -> Data {
         switch contentsRow[contentStorageTypeKey] {
         case .inline, .resourceFork:
+            let retData: Data
             if let contentLocation = contentLocation {
-                return try Data(contentsOf: contentLocation.appendingPathComponent("\(contentsRow[externalIdentifierKey])"))
+                retData = try Data(contentsOf: contentLocation.appendingPathComponent("\(contentsRow[externalIdentifierKey])"))
+            } else {
+                retData = contentsRow[contentsKey]
             }
-            return contentsRow[contentsKey]
+
+            //If the requestedRange length is -1, return the entire data set.
+            if let requestedRange = range, requestedRange.length != -1 {
+                let start = requestedRange.location
+                let end = start + requestedRange.length
+                return retData.subdata(in: start..<end)
+            }
+
+            return retData
         case .inChunkStore:
             logger.error("Called contentsFromRow but the row was stored in chunk store")
             throw CommonError.internalError
         }
     }
 
-    func fetchItemContents(identifier: ItemIdentifier, contentRevision: Int64) throws -> Data {
+    func fetchItemContents(identifier: ItemIdentifier, contentRevision: Int64, range: NSRange? = nil) throws -> Data {
         guard let contentsRow = try conn.pluck(contentsTable.filter(identifier == idKey && contentRevision == contentRevKey &&
                                                                     .resourceFork != contentStorageTypeKey)) else {
             logger.fault("Could not find data for contentRevKey, identifier == \(identifier), revision == \(contentRevision), contentStorageTypeKey != .resourceFork")
             throw CommonError.internalError
         }
-        return try contentsFromRow(contentsRow)
+        return try contentsFromRow(contentsRow, range: range)
     }
 
     func hasResourceFork(identifier: ItemIdentifier) throws -> Bool {
@@ -55,7 +66,8 @@ extension ItemDatabase {
         return itemRow[resourceForkKey]
     }
 
-    // Returns the item's resource fork, if present. Otherwise, it return an empty data object.
+    // Returns the item's resource fork, if present. Otherwise, it returns an
+    // empty data object.
     func fetchItemResourceFork(identifier: ItemIdentifier, contentRevision: Int64) throws -> Data {
         if try !hasResourceFork(identifier: identifier) {
             return Data()

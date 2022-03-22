@@ -168,9 +168,9 @@ extension Extension: NSFileProviderCustomAction {
         }
         // Demonstrate explicit eviction via a menu item. Note that the explicit call
         // differs in behavior from "Remove Download" in Finder:
-        // - Finder will attempt to free up as much space as possible
-        // - this call will return an error as when it encounters nonevictable items,
-        //   with no guarantee about the state of the remaining items
+        // - Finder attempts to free up as much space as possible.
+        // - This call returns an error as when it encounters nonevictable
+        // items, with no guarantee about the state of the remaining items.
         manager.evictItem(identifier: item, completionHandler: completionHandler)
         return Progress()
     }

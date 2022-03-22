@@ -2,7 +2,7 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-A local HTTP Server which acts as a server for cloud files.
+A local HTTP server that acts as a server for cloud files.
 */
 
 import Foundation

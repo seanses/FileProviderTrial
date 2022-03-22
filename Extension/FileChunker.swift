@@ -2,7 +2,7 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-A utility class for chunking up a file for incremental fetching.
+A utility class for chunking a file for incremental fetching.
 */
 
 import Foundation

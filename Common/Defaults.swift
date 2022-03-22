@@ -18,7 +18,11 @@ internal let defaultValues: [String: Any] = ["responseDelay": 0.0,
                                              "ignoreContentVersionOnDeletion": false,
                                              "trashDisabled": false,
                                              "syncChildrenBeforeParentMove": true,
-                                             "uploadNewFilesInChunks": true]
+                                             "uploadNewFilesInChunks": true,
+                                             "supportBRM": true,
+                                             "minFileSizeForBRM": 1024 * 1024,
+                                             "unalignedBRMResponse": false,
+                                             "BRMChunkSizeMB": 5]
 
 public struct FeatureFlag {
     public let name: String
@@ -228,5 +232,23 @@ public extension UserDefaults {
                            featureFlag: FeatureFlag) {
         let existingFeatureFlag = self.featureFlag(for: domainIdentifier, featureFlag: featureFlag)
         self.setFeatureFlag(for: domainIdentifier, featureFlag: featureFlag, value: !existingFeatureFlag)
+    }
+
+    var supportBRM: Bool {
+        return bool(forKey: "supportBRM")
+    }
+
+    var minSizeFileForBRM: Int {
+        return integer(forKey: "minFileSizeForBRM")
+    }
+
+    var isUnalignedBRMResponse: Bool {
+        let ret = bool(forKey: "unalignedBRMResponse")
+        set(false, forKey: "unalignedBRMResponse")
+        return ret
+    }
+
+    var BRMChunkSize: Int {
+        return integer(forKey: "BRMChunkSizeMB") * 1_048_576 // Convert into bytes.
     }
 }

@@ -86,7 +86,7 @@ class EditDomainWindowController: NSWindowController {
     }
 
     @IBAction func saveButton(_ sender: Any) {
-        async {
+        Task {
             guard let window = window, allRoots != nil else { fatalError() }
 
             guard !displayName.isEmpty else { return }

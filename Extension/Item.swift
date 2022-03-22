@@ -167,8 +167,8 @@ class Item: NSObject, NSFileProviderItemProtocol, NSFileProviderItemDecorating {
 
     var userInfo: [AnyHashable: Any]? {
         var ret = [AnyHashable: Any]()
-        // Expose keys in the entry's userInfo as part of the item. They are used
-        // to determine eligibility of actions, for interaction predicates, and
+        // Expose keys in the entry's userInfo as part of the item. They're used
+        // to determine eligibility of actions for interaction predicates and
         // as input for decoration descriptions.
         if let val = entry.userInfo.conflictCount {
             ret["conflictCount"] = val
@@ -186,9 +186,9 @@ class Item: NSObject, NSFileProviderItemProtocol, NSFileProviderItemDecorating {
             ret["quotaTotal"] = val
         }
 
-        // This key is not part of the item's userInfo, but depends on an extended
-        // attribute. It is needed to determine an action eligibility, so it must
-        // be explicitly added to the item's userInfo.
+        // This key isn't part of the item's userInfo, but depends on an
+        // extended attribute. it's needed to determine an action eligibility,
+        // so it must be explicitly added to the item's userInfo.
         func setInfoIfXattr<T: XAttrGettable>(_ info: String, _ type: T.Type, _ xattr: String) {
             if let fav = entry.metadata.extendedAttributes?.values[xattr],
                 let val = try? JSONDecoder().decode(type, from: fav),
@@ -200,8 +200,9 @@ class Item: NSObject, NSFileProviderItemProtocol, NSFileProviderItemDecorating {
         setInfoIfXattr("pinned", Bool.self, DomainService.MarkParameter.pinnedXattr)
         setInfoIfXattr("isShared.inherited", Bool.self, DomainService.MarkParameter.isSharedXattr)
 
-        // Read injectUserInfoXattr as a dictionary and add any entries found.
-        // e.g. `xattr -w com.example.fruitbasket.injectUserInfo#PS "{ \"arbitrary\": \"value\" }" file.txt`
+        // Read injectUserInfoXattr as a dictionary and add any entries found,
+        // e.g., `xattr -w com.example.fruitbasket.injectUserInfo#PS "{
+        // \"arbitrary\": \"value\" }" file.txt.`
         if let fav = entry.metadata.extendedAttributes?.values[Self.injectUserInfoXattr],
            let values = try? JSONSerialization.jsonObject(with: fav, options: []) as? [String: Any] {
             values.forEach { (key: String, value: Any) in

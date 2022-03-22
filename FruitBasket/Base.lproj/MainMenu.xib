@@ -719,7 +719,7 @@
                             <autoresizingMask key="autoresizingMask"/>
                             <subviews>
                                 <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" columnSelection="YES" multipleSelection="NO" autosaveColumns="NO" rowSizeStyle="automatic" viewBased="YES" id="KK4-em-i3S">
-                                    <rect key="frame" x="0.0" y="0.0" width="550" height="277"/>
+                                    <rect key="frame" x="0.0" y="0.0" width="700" height="277"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <size key="intercellSpacing" width="3" height="2"/>
                                     <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -738,7 +738,7 @@
                                             <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                             <prototypeCellViews>
                                                 <tableCellView id="U9y-nH-7pF">
-                                                    <rect key="frame" x="11" y="1" width="172" height="17"/>
+                                                    <rect key="frame" x="1" y="1" width="172" height="17"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <subviews>
                                                         <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="vi1-PM-SqM">
@@ -792,7 +792,7 @@
                                             <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                             <prototypeCellViews>
                                                 <tableCellView id="Lff-wm-xjt">
-                                                    <rect key="frame" x="186" y="1" width="101" height="17"/>
+                                                    <rect key="frame" x="176" y="1" width="101" height="17"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <subviews>
                                                         <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="96w-S6-Obd">
@@ -824,7 +824,7 @@
                                                 <binding destination="xJD-Y9-Igi" name="value" keyPath="arrangedObjects" id="Jtt-A6-pAq"/>
                                             </connections>
                                         </tableColumn>
-                                        <tableColumn editable="NO" width="235" minWidth="10" maxWidth="3.4028234663852886e+38" id="gCq-c5-eUi">
+                                        <tableColumn editable="NO" width="414" minWidth="10" maxWidth="3.4028234663852886e+38" id="gCq-c5-eUi">
                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Status">
                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -837,11 +837,11 @@
                                             <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                             <prototypeCellViews>
                                                 <tableCellView id="2BZ-b9-Xr0">
-                                                    <rect key="frame" x="290" y="1" width="239" height="17"/>
+                                                    <rect key="frame" x="280" y="1" width="418" height="17"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <subviews>
                                                         <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="ES5-7j-Npm">
-                                                            <rect key="frame" x="0.0" y="0.0" width="239" height="17"/>
+                                                            <rect key="frame" x="0.0" y="0.0" width="418" height="17"/>
                                                             <constraints>
                                                                 <constraint firstAttribute="height" constant="17" id="1HT-nZ-kyA"/>
                                                             </constraints>
@@ -882,8 +882,8 @@
                                 </tableView>
                             </subviews>
                         </clipView>
-                        <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="L1X-Cm-lor">
-                            <rect key="frame" x="1" y="262" width="70" height="16"/>
+                        <scroller key="horizontalScroller" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="L1X-Cm-lor">
+                            <rect key="frame" x="1" y="262" width="550" height="16"/>
                             <autoresizingMask key="autoresizingMask"/>
                         </scroller>
                         <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="vAh-eg-gjf">

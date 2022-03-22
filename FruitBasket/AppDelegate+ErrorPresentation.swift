@@ -11,7 +11,8 @@ import Swifter
 
 extension NSError {
     // Merge values into the user info values from the error. If values to add
-    // contains keys that already exist, this method will overwrite the existing values.
+    // contain keys that already exist, this method overwrites the existing
+    // values.
     convenience init(_ other: Error, adding valuesToAdd: [String: Any]) {
         let nsError = other as NSError
         var userInfo = nsError.userInfo

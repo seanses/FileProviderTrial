@@ -2,7 +2,7 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-An entry in the domain list that is displayed in the main window of the app.
+An entry in the domain list that's displayed in the main window of the app.
 */
 
 import Cocoa

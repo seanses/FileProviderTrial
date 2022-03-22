@@ -95,7 +95,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSXPCListenerDelegate {
             let accounts: [AccountService.Account] = try await self.accountConnection.makeJSONCall(AccountService.ListAccountParameter()).accounts
             return (domains, accounts)
         }
-        async {
+        Task {
             do {
                 for try await value in domainAccounts {
                     await self.updateDomains(value)
@@ -109,7 +109,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSXPCListenerDelegate {
     func handleDomainPipeError(_ error: Error) {
         let retry = {
             DispatchQueue.main.asyncAfter(deadline: DispatchTime.now().advanced(by: .seconds(3))) {
-                async {
+                Task {
                     await self.setupDomainPipe()
                 }
             }
@@ -156,7 +156,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSXPCListenerDelegate {
             guard let strongSelf = self else {
                 return
             }
-            async {
+            Task {
                 await strongSelf.serverChangeReceived()
             }
         }
@@ -165,7 +165,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSXPCListenerDelegate {
         DistributedNotificationCenter.default().addObserver(self, selector: #selector(AppDelegate.itemsChanged(_:)),
                                                             name: .itemsChanged, object: nil, suspensionBehavior: .deliverImmediately)
 
-        async {
+        Task {
             await setupDomainPipe()
             NotificationCenter.default.post(Notification(name: NSNotification.Name.fileProviderDomainDidChange))
             DistributedNotificationCenter.default().post(Notification(name: .accountsDidChange))
@@ -176,7 +176,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSXPCListenerDelegate {
     func itemsChanged(_ notification: Notification) {
         guard let object = notification.object as? String,
               let id = Int64(object) else { return }
-        async { await notifier.notify(for: DomainService.ItemIdentifier(id)) }
+        Task { await notifier.notify(for: DomainService.ItemIdentifier(id)) }
         notifyThrottle.signal()
     }
 
@@ -198,35 +198,41 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSXPCListenerDelegate {
         window.standardWindowButton(.documentIconButton)?.image = nil
     }
 
-    func applicationDidFinishLaunching(_ aNotification: Notification) {
-        window.isExcludedFromWindowsMenu = true
-        logger.info("🌅  FruitBasket \(self.versionString) started")
+    nonisolated func applicationDidFinishLaunching(_ aNotification: Notification) {
+        Task { @MainActor in
+            window.isExcludedFromWindowsMenu = true
+            logger.info("🌅  FruitBasket \(self.versionString) started")
+        }
     }
 
-	func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-		if let mainWindow = window {
-			mainWindow.makeKeyAndOrderFront(self)
-		}
-		return false
+    nonisolated func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        Task { @MainActor in
+            if let mainWindow = window {
+                mainWindow.makeKeyAndOrderFront(self)
+            }
+        }
+        return false
 	}
 
-    func applicationWillTerminate(_ aNotification: Notification) {
-        logger.info("🌃  FruitBasket \(self.versionString) terminating")
-        self.contentBasedChunkStore.close()
-        logger.info("🌃  FruitBasket \(self.versionString) terminated")
+    nonisolated func applicationWillTerminate(_ aNotification: Notification) {
+        Task { @MainActor in
+            logger.info("🌃  FruitBasket \(self.versionString) terminating")
+            self.contentBasedChunkStore.close()
+            logger.info("🌃  FruitBasket \(self.versionString) terminated")
+        }
     }
 
     func serverChangeReceived() async {
         await updateItemCount()
         let entries = domainEntries
-        async { await notifier.serverChangeReceived(entries) }
+        Task { await notifier.serverChangeReceived(entries) }
     }
 
     @IBAction func toggleAuthenticationIgnoreStatus(_ sender: AnyObject) {
         let entries = domainEntries
         // Assign to force an update on the table.
         domainEntries = entries
-        async { await notifier.signalItems(entries) }
+        Task { await notifier.signalItems(entries) }
      }
 
     @IBAction func changeAccountQuota(_ sender: AnyObject) {
@@ -238,7 +244,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSXPCListenerDelegate {
 🔆 notifying \(entry.domain.prettyDescription) for account quota change, \
 now: \(String(describing: UserDefaults.sharedContainerDefaults.accountQuota))
 """)
-            async {
+            Task {
                 do {
                     try await manager.signalErrorResolved(NSFileProviderError(.insufficientQuota))
                     self.logger.info("✅ succeeded to signal insufficientQuota error as resolved for \(entry.domain.prettyDescription)")
@@ -330,7 +336,7 @@ now: \(String(describing: UserDefaults.sharedContainerDefaults.accountQuota))
 
         let manager = NSFileProviderManager(for: domain)!
 
-        async {
+        Task {
             if domain.isDisconnected {
                 do {
                     try await manager.reconnect()
@@ -354,7 +360,7 @@ now: \(String(describing: UserDefaults.sharedContainerDefaults.accountQuota))
 
         domain.isHidden.toggle()
 
-        async {
+        Task {
             do {
                 try await NSFileProviderManager.add(domain)
             } catch {
@@ -392,7 +398,7 @@ now: \(String(describing: UserDefaults.sharedContainerDefaults.accountQuota))
                 return
             }
 
-            async {
+            Task {
                 do {
                     try await manager.signalEnumerator(for: .workingSet)
                 } catch let error as NSError {
@@ -407,7 +413,7 @@ now: \(String(describing: UserDefaults.sharedContainerDefaults.accountQuota))
             let entry = entries.first else { return }
         let domain = entry.domain
 
-        async {
+        Task {
             do {
                 let resp = try await self.accountConnection.makeJSONCall(AccountService.ListAccountParameter())
                 guard let account = resp.accounts.first(where: { $0.identifier == domain.identifier.rawValue }) else {
@@ -454,7 +460,7 @@ now: \(String(describing: UserDefaults.sharedContainerDefaults.accountQuota))
             let entry = entries.first else { return }
         let domain = entry.domain
 
-        async {
+        Task {
             do {
                 _ = try await self.accountConnection.makeJSONCall(AccountService.ResetSyncAnchorParameter(identifier: domain.identifier.rawValue))
                 self.logger.debug("Sync anchor has been reset")
@@ -469,7 +475,7 @@ now: \(String(describing: UserDefaults.sharedContainerDefaults.accountQuota))
             let entry = entries.first else { return }
         let domain = entry.domain
 
-        async {
+        Task {
             do {
                 let param = AccountService.SetOfflineModeParameter(identifier: domain.identifier.rawValue, enableOffline: !entry.offline)
                 let resp = try await self.accountConnection.makeJSONCall(param)
@@ -523,7 +529,7 @@ now: \(String(describing: UserDefaults.sharedContainerDefaults.accountQuota))
                 return
             }
 
-        async {
+        Task {
             do {
                 try await manager.reimportItems(below: .rootContainer)
             } catch let error as NSError {
@@ -537,7 +543,7 @@ now: \(String(describing: UserDefaults.sharedContainerDefaults.accountQuota))
             let entry = entries.first else { return }
         let domain = entry.domain
         guard let manager = NSFileProviderManager(for: domain) else { return }
-        async {
+        Task {
             do {
                 let url = try await manager.getUserVisibleURL(for: NSFileProviderItemIdentifier.rootContainer)
                 let stop = url.startAccessingSecurityScopedResource()

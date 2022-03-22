@@ -2,7 +2,7 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-A number formatter which only considers the digits 0-9 valid.
+A number formatter that only considers the digits 0-9 valid.
 */
 
 import Foundation

@@ -125,68 +125,126 @@ extension Extension {
         return forkProgress
     }
 
-    public func fetchContents(for itemIdentifier: NSFileProviderItemIdentifier, version requestedVersion: NSFileProviderItemVersion?,
-                              request: NSFileProviderRequest, completionHandler: @escaping (URL?, NSFileProviderItem?, Error?) -> Void) -> Progress {
-        logger.debug("🧩 fetchContents(for:\(itemIdentifier.rawValue)) @ domainVersion(\(request.domainVersion?.description ?? "<nil>"))")
+    private func adjustRequestedRange(requestedRange: NSRange, alignment: Int, fileSize: Int) -> NSRange {
+        guard fileSize != 0, requestedRange.location >= 0, requestedRange.length > 0 else {
+            return NSRange(location: 0, length: -1)
+        }
+
+        var extent: NSRange
+        let alignedStart = requestedRange.location & ~(alignment - 1)
+        let length = requestedRange.location + requestedRange.length - alignedStart
+        var alignedLength = ((length + alignment - 1) & ~(alignment - 1))
+        if alignedLength < UserDefaults.sharedContainerDefaults.BRMChunkSize {
+            alignedLength = UserDefaults.sharedContainerDefaults.BRMChunkSize
+        }
+
+        let alignedEnd = alignedStart + alignedLength
+
+        if fileSize <= UserDefaults.sharedContainerDefaults.minSizeFileForBRM {
+            //Materialize the entire file.
+            extent = NSRange(location: 0, length: -1)
+        } else if fileSize > alignedStart && fileSize >= alignedEnd {
+            extent = NSRange(location: alignedStart, length: alignedLength)
+            if UserDefaults.sharedContainerDefaults.isUnalignedBRMResponse {
+                extent.location += 5
+                extent.length -= 5
+            }
+        } else if fileSize > alignedStart && fileSize < alignedEnd {
+            //Trim the end of the file.
+            extent = NSRange(location: alignedStart, length: fileSize - alignedStart)
+        } else {
+            //Materialize the entire file.
+            extent = NSRange(location: 0, length: -1)
+        }
+
+        return extent
+    }
+
+    private func fetchContentsInternal(
+        for itemIdentifier: NSFileProviderItemIdentifier,
+        version requestedVersion: NSFileProviderItemVersion?,
+        range: NSRange?,
+        request: NSFileProviderRequest,
+        alignment: Int,
+        completionHandler: @escaping (URL?, NSFileProviderItem?, NSRange?,
+                                      NSFileProviderMaterializationFlags,
+                                      Error?) -> Void) -> Progress {
 
         let progress = Progress(totalUnitCount: 110)
 
         let itemProgress = self.item(for: itemIdentifier, request: request) { itemOptional, errorOptional in
             if let error = errorOptional as NSError? {
                 self.logger.error("Error calling item for identifier \"\(String(describing: itemIdentifier))\": \(error)")
-                completionHandler(nil, nil, error)
+                completionHandler(nil, nil, nil, [], error)
                 return
             }
 
             guard let item = itemOptional else {
                 self.logger.error("Could not find item metadata, identifier: \(String(describing: itemIdentifier))")
-                completionHandler(nil, nil, CommonError.internalError)
+                completionHandler(nil, nil, nil, [], CommonError.internalError)
                 return
             }
 
             guard let itemCasted = item as? Item else {
                 self.logger.error("Could not cast item to Item class, identifier: \(String(describing: itemIdentifier))")
-                completionHandler(nil, nil, CommonError.internalError)
+                completionHandler(nil, nil, nil, [], CommonError.internalError)
                 return
             }
 
             if let requestedVersion = requestedVersion {
-                guard requestedVersion == item.itemVersion else {
+                guard requestedVersion.contentVersion == item.itemVersion?.contentVersion else {
                     self.logger.error("requestedVersion (\(String(describing: requestedVersion))) != item.itemVersion (\(String(describing: item.itemVersion)))")
-                    completionHandler(nil, nil, CommonError.internalError)
+                    completionHandler(nil, nil, nil, [], NSFileProviderError(.versionNoLongerAvailable))
                     return
                 }
             }
 
-            let internalCompletionHandler = { (url: URL?, item: NSFileProviderItem?, error: Error?) -> Void in
+            let internalCompletionHandler = { (url: URL?, item: NSFileProviderItem?,
+                                               range: NSRange?, flags: NSFileProviderMaterializationFlags,
+                                               error: Error?) -> Void in
                 let forkProgress = self.fetchResourceFork(sourceItem: itemCasted, url: url, item: item, error: error,
-                                                          completionHandler: completionHandler)
+                                                          completionHandler: { (url: URL?, item: NSFileProviderItem?, error: Error?) -> Void in
+                    completionHandler(url, item, range, flags, error)
+                })
                 if let forkProgress = forkProgress {
                     progress.addChild(forkProgress, withPendingUnitCount: 10)
                 }
+            }
+
+            //Adjust range if needed.
+            var extent: NSRange?
+            if let requestedRange = range,
+               let fileSize = item.documentSize??.intValue {
+                extent = self.adjustRequestedRange(requestedRange: requestedRange, alignment: alignment, fileSize: fileSize)
             }
 
             self.retrieveContentStorageType(itemIdentifier: itemCasted.entry.id,
                                             requestedRevision: itemCasted.entry.revision) { contentStorageTypeOptional, errorOptional in
                 if let error = errorOptional as NSError? {
                     self.logger.error("Error calling retrieveContentStorageType for identifier \"\(String(describing: itemIdentifier))\": \(error)")
-                    completionHandler(nil, nil, error)
+                    completionHandler(nil, nil, nil, [], error)
                     return
                 }
 
                 guard let contentStorageType = contentStorageTypeOptional else {
                     self.logger.error("no error, but also no contentStorageType")
-                    completionHandler(nil, nil, CommonError.internalError)
+                    completionHandler(nil, nil, nil, [], CommonError.internalError)
                     return
                 }
 
                 let fetchContentsProgress: Progress
                 switch contentStorageType {
                 case .inline:
-                    fetchContentsProgress = self.fetchContentsInline(for: itemIdentifier, version: requestedVersion, request: request,
-                                                                     completionHandler: internalCompletionHandler)
+                    fetchContentsProgress = self.fetchContentsInline(
+                        for: itemIdentifier,
+                        version: requestedVersion,
+                        range: extent,
+                        request: request,
+                        completionHandler: internalCompletionHandler)
                 case .inChunkStore(let contentSha256S):
-                    fetchContentsProgress = self.fetchContentsFromChunkStore(contentSha256S: contentSha256S, item: item, previousVersionFileURL: nil,
+                    fetchContentsProgress = self.fetchContentsFromChunkStore(contentSha256S: contentSha256S,
+                                                                             item: item,
+                                                                             previousVersionFileURL: nil,
                                                                              completionHandler: internalCompletionHandler)
                 case .resourceFork:
                     fatalError("Should not happen")
@@ -196,9 +254,25 @@ extension Extension {
         }
 
         progress.addChild(itemProgress, withPendingUnitCount: 5)
-        progress.cancellationHandler = { completionHandler(nil, nil, NSError(domain: NSCocoaErrorDomain, code: NSUserCancelledError)) }
+        progress.cancellationHandler = { completionHandler(nil, nil, nil, [], NSError(domain: NSCocoaErrorDomain, code: NSUserCancelledError)) }
 
         return progress
+    }
+
+    public func fetchContents(for itemIdentifier: NSFileProviderItemIdentifier,
+                              version requestedVersion: NSFileProviderItemVersion?,
+                              request: NSFileProviderRequest,
+                              completionHandler: @escaping (URL?, NSFileProviderItem?, Error?) -> Void) -> Progress {
+        logger.debug("🧩 fetchContents(for:\(itemIdentifier.rawValue)) @ domainVersion(\(request.domainVersion?.description ?? "<nil>"))")
+
+        return fetchContentsInternal(for: itemIdentifier,
+                                     version: requestedVersion,
+                                     range: nil,
+                                     request: request,
+                                     alignment: 0,
+                                     completionHandler: { (url: URL?, item: NSFileProviderItem?, _, _, error: Error?) -> Void in
+            completionHandler(url, item, error)
+        })
     }
 
     func retrieveContentStorageType(itemIdentifier: DomainService.ItemIdentifier,
@@ -218,29 +292,107 @@ extension Extension {
         }
     }
 
-    func fetchContentsInline(for itemIdentifier: NSFileProviderItemIdentifier, version requestedVersion: NSFileProviderItemVersion?,
-                             request: NSFileProviderRequest, completionHandler: @escaping (URL?, NSFileProviderItem?, Error?) -> Void) -> Progress {
+    private func createSparseFileWithRange(fileURL: URL, data: Data, range: NSRange) throws {
+        let fd = try throwErrno { open(fileURL.path, O_RDWR | O_CREAT, 0666) }
+        defer { close(fd) }
+        _ = try data.withUnsafeBytes { valuePtr in
+            try throwErrno { pwrite(fd, valuePtr.bindMemory(to: Int8.self).baseAddress, range.length, off_t(range.location)) }
+        }
+    }
+
+    func fetchContentsInline(
+        for itemIdentifier: NSFileProviderItemIdentifier,
+        version requestedVersion: NSFileProviderItemVersion?,
+        range: NSRange?,
+        request: NSFileProviderRequest,
+        completionHandler: @escaping (URL?, NSFileProviderItem?, NSRange?, NSFileProviderMaterializationFlags, Error?) -> Void) -> Progress {
+
         let param: DomainService.DownloadItemParameter
         if let version = requestedVersion {
             param = DomainService.DownloadItemParameter(itemIdentifier: DomainService.ItemIdentifier(itemIdentifier),
-                                                        requestedRevision: DomainService.Version(version))
+                                                        requestedRevision: DomainService.Version(version),
+                                                        range: range)
         } else {
-            param = DomainService.DownloadItemParameter(itemIdentifier: DomainService.ItemIdentifier(itemIdentifier), requestedRevision: nil)
+            param = DomainService.DownloadItemParameter(itemIdentifier: DomainService.ItemIdentifier(itemIdentifier),
+                                                        requestedRevision: nil,
+                                                        range: range)
         }
+
         return connection.makeJSONCallWithReturn(param) { result in
             switch result {
             case .failure(let error):
-                completionHandler(nil, nil, error.toPresentableError())
+                completionHandler(nil, nil, nil, [], error.toPresentableError())
             case .success((let response, let data)):
                 do {
                     let dataURL = self.makeTemporaryURL("fetchedContents")
-                    try data.write(to: dataURL)
-                    completionHandler(dataURL, Item(response.item), nil)
+                    var returnedLength = NSRange(location: 0, length: data.count)
+                    var shouldCreateSparse = false
+                    var retFlags: NSFileProviderMaterializationFlags = [.knownSparseRanges]
+                    if var requestedRange = range {
+                        if requestedRange.length == -1 {
+                            requestedRange.length = data.count
+                        } else {
+                            retFlags = retFlags.removing(.knownSparseRanges)
+                        }
+                        if requestedRange.location != 0 {
+                            shouldCreateSparse = true
+                            retFlags = retFlags.removing(.knownSparseRanges)
+                        }
+                        returnedLength = requestedRange
+                    }
+
+                    if shouldCreateSparse {
+                        try self.createSparseFileWithRange(fileURL: dataURL, data: data, range: returnedLength)
+                    } else {
+                        try data.write(to: dataURL)
+                    }
+                    completionHandler(dataURL, Item(response.item), returnedLength, retFlags, nil)
                 } catch let error {
-                    completionHandler(nil, nil, error.toPresentableError())
+                    completionHandler(nil, nil, nil, [], error.toPresentableError())
                 }
             }
         }
+    }
+}
+
+extension Extension: NSFileProviderPartialContentFetching {
+    public func fetchPartialContents(for itemIdentifier: NSFileProviderItemIdentifier,
+                                     version requestedVersion: NSFileProviderItemVersion,
+                                     request: NSFileProviderRequest,
+                                     minimalRange range: NSRange,
+                                     aligningTo alignment: Int,
+                                     options: NSFileProviderFetchContentsOptions,
+                                     completionHandler:
+                                     @escaping (URL?, NSFileProviderItem?, NSRange,
+                                                NSFileProviderMaterializationFlags,
+                                                Error?) -> Void) -> Progress {
+
+        var requestedRange: NSRange? = nil
+        if UserDefaults.sharedContainerDefaults.supportBRM {
+            requestedRange = range
+        }
+
+        logger.debug("""
+                    🧩 fetchPartialContents(for:\(itemIdentifier.rawValue))
+                    @ range(\(range.location),\(range.length))
+                    domainVersion(\(request.domainVersion?.description ?? "<nil>"))
+                    """)
+
+        return fetchContentsInternal(for: itemIdentifier,
+                                     version: options.contains(.strictVersioning) ? requestedVersion : nil,
+                                     range: requestedRange,
+                                     request: request,
+                                     alignment: alignment,
+                                     completionHandler: { (url: URL?, item: NSFileProviderItem?,
+                                                           returnRange: NSRange?,
+                                                           flags: NSFileProviderMaterializationFlags,
+                                                           error: Error?) -> Void in
+            if let returnRange = returnRange {
+                completionHandler(url, item, returnRange, flags, error)
+            } else {
+                completionHandler(url, item, range, flags, error)
+            }
+        })
     }
 }
 
@@ -288,15 +440,19 @@ extension Extension {
                            contents newContents: URL?, options: NSFileProviderModifyItemOptions = [], request: NSFileProviderRequest,
                            completionHandler: @escaping (NSFileProviderItem?, NSFileProviderItemFields, Bool, Error?) -> Void) -> Progress {
         let progress = Progress(totalUnitCount: 100)
-        async {
-            let (item, remainingFields, someBool) = try await self.modifyItemInternal(item,
-                                                                                      baseVersion: version,
-                                                                                      changedFields: changedFields,
-                                                                                      contents: newContents,
-                                                                                      options: options,
-                                                                                      request: request,
-                                                                                      progress: progress)
-            completionHandler(item, remainingFields, someBool, nil)
+        Task {
+            do {
+                let (item, remainingFields, someBool) = try await self.modifyItemInternal(item,
+                                                                                          baseVersion: version,
+                                                                                          changedFields: changedFields,
+                                                                                          contents: newContents,
+                                                                                          options: options,
+                                                                                          request: request,
+                                                                                          progress: progress)
+                completionHandler(item, remainingFields, someBool, nil)
+            } catch {
+                completionHandler(nil, [], false, error)
+            }
         }
         return progress
     }
@@ -325,7 +481,7 @@ extension Extension {
                 switch res {
                 case .success:
                     if !updateResourceForkOnConflictedItem {
-                        async {
+                        Task {
                             let result = try await self.uploadThumbnail(item: item,
                                                                         originalContentType: contentType,
                                                                         url: url,
@@ -353,7 +509,7 @@ extension Extension {
         logger.debug("🧩 modifyItem(for:\(item.itemIdentifier.rawValue)) @ domainVersion(\(request.domainVersion?.description ?? "<nil>"))")
         // The server API breaks out the different types of changes into separate calls:
         // content changes, thumbnail changes, and metadata changes (such as renames).
-        // A differently-designed server API might want to back all of these changes
+        // A differently designed server API might want to back all of these changes
         // by the same endpoint.
 
         if changedFields.contains(.contents) {
@@ -391,7 +547,7 @@ extension Extension {
                     }
 
                     if self.shouldUploadInChunks(itemTemplate: item) {
-                        let (chunkWithSha256s, contentLength0) = try self.uploadFileInChunks(contents: contents)
+                        let (chunkWithSha256s, contentLength0) = try await self.uploadFileInChunks(contents: contents)
                         let contentLength = contentLength0
                         let chunkSha256s = chunkWithSha256s.map({ (arg0) -> String in
                             return arg0.sha256
@@ -415,7 +571,7 @@ extension Extension {
                                                                                 updateResourceForkOnConflictedItem: false)
             return try await withCheckedThrowingContinuation { continuation in
                 let callProgress = connection.makeJSONCall(modifyContentsParameter, data) { res in
-                    async {
+                    Task {
                         do {
                             switch res {
                             case .success(let resp):
@@ -465,7 +621,7 @@ extension Extension {
                 let param = DomainService.FetchItemParameter(itemIdentifier: DomainService.ItemIdentifier(item.itemIdentifier))
                 return try await withCheckedThrowingContinuation { continuation in
                     let callProgress = connection.makeJSONCall(param) { res in
-                        async {
+                        Task {
                             switch res {
                             case .failure(let error):
                                 continuation.resume(throwing: error.toPresentableError())
@@ -545,7 +701,7 @@ extension Extension {
                            options: NSFileProviderCreateItemOptions = [], request: NSFileProviderRequest,
                            completionHandler: @escaping (NSFileProviderItem?, NSFileProviderItemFields, Bool, Error?) -> Void) -> Progress {
         let progress = Progress(totalUnitCount: 100)
-        async {
+        Task {
             do {
                 let (item, remainingFields, someBool) = try await self.createItemInternal(basedOn: itemTemplate,
                                                                                           fields: fields,
@@ -645,7 +801,7 @@ extension Extension {
 
                 do {
                     if self.shouldUploadInChunks(itemTemplate: itemTemplate) {
-                        let (chunkSha256sWithRanges, contentLength) = try self.uploadFileInChunks(contents: url)
+                        let (chunkSha256sWithRanges, contentLength) = try await self.uploadFileInChunks(contents: url)
                         let chunkSha256s = chunkSha256sWithRanges.map { (arg0) -> String in
                             return arg0.sha256
                         }

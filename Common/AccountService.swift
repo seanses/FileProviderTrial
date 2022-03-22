@@ -2,7 +2,7 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-Parameter and return values for account-related requests to the local HTTP server.
+The parameter and return values for account-related requests to the local HTTP server.
 */
 
 import Foundation
@@ -26,7 +26,8 @@ public enum AccountService {
         public let secret: String
         public let displayName: String
         public let rootItem: DomainService.Entry
-        // This is a random number assigned at account creation which is used to test rank expiration.
+        // This is a random number assigned at account creation and used to test
+        // rank expiration.
         public let tokenCheckNumber: Int64
         public var flags: AccountFlags
 

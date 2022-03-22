@@ -34,14 +34,17 @@ extension ItemDatabase {
                     let entry = Entry(row, self)
                     return (entry.id, entry.revision)
                 case .bounce:
-                    // Rename the existing file by appending a unique number to the end of its name.
-                    // This way, if a swap is synced, e.g. a->b + b->a, the following operations will be performed:
+                    // Rename the existing file by appending a unique number to
+                    // the end of its name. This way, if a swap is synced, e.g.
+                    // a->b + b->a, the following operations will be performed:
                     // 1. b -> b2, a -> b
                     // 2. b2 -> a
-                    // which makes everything come out correctly.
-                    // A nicer database representation would be to keep the bounce number and the filename separate, then only apply the
-                    // bounce if necessary. That would have the advantage of bouncing the newer file, which is closer to
-                    // the user's expectations in case of a real bounce.
+                    // Which produces the correct results. A more complex
+                    // database representation could keep the bounce number and
+                    // the filename separate, then only apply the bounce if
+                    // necessary. That would have the advantage of bouncing the
+                    // newer file, which is closer to the user's expectations in
+                    // case of a real bounce.
                     let bounceName = try bounceFileIfNecessary(parent, name)
                     try conn.run(itemsTable.where(idKey == row[idKey]).update(nameKey <- bounceName))
                 }
@@ -69,7 +72,7 @@ extension ItemDatabase {
             guard oldItem[deletedKey] == false else { throw CommonError.itemNotFound(identifier) }
             // Check that the revision has the same version as the old item.
             guard revision.content == Version(oldItem).content else { throw CommonError.wrongRevision(Entry(oldItem, self)) }
-            // Check that the new size won't go over the user's quota.
+            // Check that the new size won't exceed the user's quota.
             let newQuotaUsed = try computeNewQuotaUsed(identifier: identifier, oldVersion: oldItem[contentRevKey],
                                                        newSize: contentStorageTypeParameter.contentLength())
             // A quota of 0 means unlimited.
@@ -224,7 +227,8 @@ extension ItemDatabase {
             // To avoid cycles, fetch all parents for the new location.
             let statement = try parentQueryWithFilter(newParent)
             let parentIdentifiers = statement.map({ RowWrapper(statement.columnNames, $0) }).map({ $0[idKey] })
-            // Confirm that the item is not one of the parents of the new location.
+            // Confirm that the item isn't one of the parents of the new
+            // location.
             if oldItem[typeKey] != .root {
                 if parentIdentifiers.contains(where: { $0 == identifier }) {
                     throw CommonError.parameterError
