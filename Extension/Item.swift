@@ -65,6 +65,7 @@ class Item: NSObject, NSFileProviderItemProtocol, NSFileProviderItemDecorating {
     }
 
     var capabilities: NSFileProviderItemCapabilities {
+#if os(macOS)
         var result: NSFileProviderItemCapabilities = [
             .allowsAddingSubItems,
             .allowsContentEnumerating,
@@ -73,18 +74,35 @@ class Item: NSObject, NSFileProviderItemProtocol, NSFileProviderItemDecorating {
             .allowsRenaming,
             .allowsReparenting,
             .allowsWriting,
-            .allowsEvicting,
             .allowsExcludingFromSync
         ]
+#else
+        var result: NSFileProviderItemCapabilities = [
+            .allowsAddingSubItems,
+            .allowsContentEnumerating,
+            .allowsDeleting,
+            .allowsReading,
+            .allowsRenaming,
+            .allowsReparenting,
+            .allowsWriting,
+            .allowsEvicting
+        ]
+#endif
         if !UserDefaults.sharedContainerDefaults.trashDisabled {
             result.insert(.allowsTrashing)
         }
-        if let isPinned = self.userInfo?["pinned"] as? Bool, isPinned {
-            result.remove(.allowsEvicting)
-        }
         return result
     }
-
+    
+#if os(macOS)
+    var contentPolicy: NSFileProviderContentPolicy {
+        if let isPinned = self.userInfo?["pinned"] as? Bool, isPinned {
+            return .downloadEagerlyAndKeepDownloaded
+        }
+        return .inherited
+    }
+#endif
+    
     var documentSize: NSNumber? {
         return entry.size as NSNumber
     }
@@ -123,10 +141,11 @@ class Item: NSObject, NSFileProviderItemProtocol, NSFileProviderItemDecorating {
 
     // This property demonstrates two ways of determining decorations: by an entry's
     // userInfo and by the presence of an extended attribute.
-    var decorations: [NSFileProviderItemDecorationIdentifier]? {
+    var decorations: [NSFileProviderItemDecorationIdentifier]?
+    {
         var decos = [NSFileProviderItemDecorationIdentifier]()
 
-        // These attributes are set depending on keys in the entry's userInfo.
+        // Set these attributes depending on keys in the entry's userInfo.
         if let conflictCount = entry.userInfo.conflictCount,
             conflictCount > 0 {
             decos.append(Item.conflictDecoration)
@@ -138,7 +157,7 @@ class Item: NSObject, NSFileProviderItemProtocol, NSFileProviderItemDecorating {
             decos.append(Item.inUseDecoration)
         }
 
-        // This attribute is set depending on whether a specific extended attribute is present.
+        // Set this attribute depending on whether a specific extended attribute is present.
         func addDecoForXattr<T: XAttrGettable>(_ deco: NSFileProviderItemDecorationIdentifier, _ type: T.Type, _ xattr: String) {
             if let fav = entry.metadata.extendedAttributes?.values[xattr] {
                 if let val = try? JSONDecoder().decode(type, from: fav) {
@@ -167,7 +186,7 @@ class Item: NSObject, NSFileProviderItemProtocol, NSFileProviderItemDecorating {
 
     var userInfo: [AnyHashable: Any]? {
         var ret = [AnyHashable: Any]()
-        // Expose keys in the entry's userInfo as part of the item. They're used
+        // Expose keys in the entry's userInfo as part of the item. The extensions use them
         // to determine eligibility of actions for interaction predicates and
         // as input for decoration descriptions.
         if let val = entry.userInfo.conflictCount {
@@ -187,8 +206,8 @@ class Item: NSObject, NSFileProviderItemProtocol, NSFileProviderItemDecorating {
         }
 
         // This key isn't part of the item's userInfo, but depends on an
-        // extended attribute. it's needed to determine an action eligibility,
-        // so it must be explicitly added to the item's userInfo.
+        // extended attribute. This sample uses it to determine an action eligibility,
+        // so needs to explicitly add it to the item's userInfo.
         func setInfoIfXattr<T: XAttrGettable>(_ info: String, _ type: T.Type, _ xattr: String) {
             if let fav = entry.metadata.extendedAttributes?.values[xattr],
                 let val = try? JSONDecoder().decode(type, from: fav),
@@ -200,8 +219,8 @@ class Item: NSObject, NSFileProviderItemProtocol, NSFileProviderItemDecorating {
         setInfoIfXattr("pinned", Bool.self, DomainService.MarkParameter.pinnedXattr)
         setInfoIfXattr("isShared.inherited", Bool.self, DomainService.MarkParameter.isSharedXattr)
 
-        // Read injectUserInfoXattr as a dictionary and add any entries found,
-        // e.g., `xattr -w com.example.fruitbasket.injectUserInfo#PS "{
+        // Read injectUserInfoXattr as a dictionary, and then find and add the entries,
+        // such as `xattr -w com.example.fruitbasket.injectUserInfo#PS "{
         // \"arbitrary\": \"value\" }" file.txt.`
         if let fav = entry.metadata.extendedAttributes?.values[Self.injectUserInfoXattr],
            let values = try? JSONSerialization.jsonObject(with: fav, options: []) as? [String: Any] {

@@ -2,7 +2,7 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-An entry in the domain list that's displayed in the main window of the app.
+An entry in the domain list that displays in the main window of the app.
 */
 
 import Cocoa
@@ -73,10 +73,7 @@ class DomainEntry: NSObject, Identifiable {
         return UserDefaults.sharedContainerDefaults.featureFlag(for: domain.identifier, featureFlag: FeatureFlags.pinnedFeatureFlag)
     }
     @objc dynamic var offline: Bool {
-        guard let flags = account?.flags else {
-            return false
-        }
-        return flags.contains(.Offline)
+        return UserDefaults.sharedContainerDefaults.offline(for: domain.identifier)
     }
 
     init(domain: NSFileProviderDomain, account: AccountService.Account?, uploadProgress: Progress?, downloadProgress: Progress?) {

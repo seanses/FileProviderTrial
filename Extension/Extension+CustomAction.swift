@@ -23,7 +23,8 @@ extension NSFileProviderExtensionActionIdentifier {
 extension Extension: NSFileProviderCustomAction {
     public func performAction(identifier actionIdentifier: NSFileProviderExtensionActionIdentifier,
                               onItemsWithIdentifiers itemIdentifiers: [NSFileProviderItemIdentifier],
-                              completionHandler: @escaping (Error?) -> Void) -> Progress {
+                              completionHandler: @escaping (Error?) -> Void) -> Progress
+    {
         logger.debug("🧩 performAction(with \(actionIdentifier.rawValue), onItemsWithIdentifiers: \(itemIdentifiers.map({ $0.rawValue })))")
 
         let progress: Progress
@@ -69,8 +70,8 @@ extension Extension: NSFileProviderCustomAction {
     private func performForceLockAction(onItemsWithIdentifiers itemIdentifiers: [NSFileProviderItemIdentifier],
                                         completionHandler: @escaping (Error?) -> Void) -> Progress {
         let items = itemIdentifiers.compactMap(DomainService.ItemIdentifier.init)
-        // Since forcing the lock is such an aggressive measure, we only allow it
-        // to happen for one item at a time. This is enforced here and also in the
+        // Because forcing the lock is such an aggressive measure, only allow it
+        // to happen for one item at a time. This sample enforces this here and also in the
         // predicate in NSExtensionFileProviderActions.
         guard items.count == 1,
             let item = items.first else {
@@ -130,13 +131,13 @@ extension Extension: NSFileProviderCustomAction {
                 }
             }
             group.wait()
-            // Wait until all intents have been gathered.
+            // Wait until the code gathers all intents.
             var coordinationError: Error? = nil
 
             let progress = Progress(totalUnitCount: Int64(intents.count + 1))
             group.enter()
             progress.performAsCurrent(withPendingUnitCount: Int64(intents.count)) { () -> Void in
-                // Coordinate in the background and notify when done.
+                // Coordinate in the background and notify when the process finishes.
                 NSFileCoordinator().coordinate(with: intents, queue: OperationQueue()) { innerError in
                     synchronized(group) {
                         coordinationError = innerError
@@ -166,10 +167,10 @@ extension Extension: NSFileProviderCustomAction {
             completionHandler(CommonError.parameterError.toPresentableError())
             return Progress()
         }
-        // Demonstrate explicit eviction via a menu item. Note that the explicit call
+        // Demonstrate explicit eviction using a menu item. Note that the explicit call
         // differs in behavior from "Remove Download" in Finder:
         // - Finder attempts to free up as much space as possible.
-        // - This call returns an error as when it encounters nonevictable
+        // - This call returns an error when it encounters nonevictable
         // items, with no guarantee about the state of the remaining items.
         manager.evictItem(identifier: item, completionHandler: completionHandler)
         return Progress()

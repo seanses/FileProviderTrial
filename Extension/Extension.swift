@@ -2,7 +2,7 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-The main entry point for the file syncing extension.
+The main entry point for the file-syncing extension.
 */
 
 import FileProvider
@@ -167,7 +167,6 @@ extension Extension {
         request: NSFileProviderRequest,
         alignment: Int,
         completionHandler: @escaping (URL?, NSFileProviderItem?, NSRange?,
-                                      NSFileProviderMaterializationFlags,
                                       Error?) -> Void) -> Progress {
 
         let progress = Progress(totalUnitCount: 110)
@@ -175,43 +174,46 @@ extension Extension {
         let itemProgress = self.item(for: itemIdentifier, request: request) { itemOptional, errorOptional in
             if let error = errorOptional as NSError? {
                 self.logger.error("Error calling item for identifier \"\(String(describing: itemIdentifier))\": \(error)")
-                completionHandler(nil, nil, nil, [], error)
+                completionHandler(nil, nil, nil, error)
                 return
             }
 
             guard let item = itemOptional else {
                 self.logger.error("Could not find item metadata, identifier: \(String(describing: itemIdentifier))")
-                completionHandler(nil, nil, nil, [], CommonError.internalError)
+                completionHandler(nil, nil, nil, CommonError.internalError)
                 return
             }
 
             guard let itemCasted = item as? Item else {
                 self.logger.error("Could not cast item to Item class, identifier: \(String(describing: itemIdentifier))")
-                completionHandler(nil, nil, nil, [], CommonError.internalError)
+                completionHandler(nil, nil, nil, CommonError.internalError)
                 return
             }
 
+#if os(macOS)
+            // Check the version when doing a partial content fetch to avoid mixing contents from different file versions.
             if let requestedVersion = requestedVersion {
                 guard requestedVersion.contentVersion == item.itemVersion?.contentVersion else {
                     self.logger.error("requestedVersion (\(String(describing: requestedVersion))) != item.itemVersion (\(String(describing: item.itemVersion)))")
-                    completionHandler(nil, nil, nil, [], NSFileProviderError(.versionNoLongerAvailable))
+                    completionHandler(nil, nil, nil, NSFileProviderError(.versionNoLongerAvailable))
                     return
                 }
             }
+#endif
 
             let internalCompletionHandler = { (url: URL?, item: NSFileProviderItem?,
-                                               range: NSRange?, flags: NSFileProviderMaterializationFlags,
+                                               range: NSRange?,
                                                error: Error?) -> Void in
                 let forkProgress = self.fetchResourceFork(sourceItem: itemCasted, url: url, item: item, error: error,
                                                           completionHandler: { (url: URL?, item: NSFileProviderItem?, error: Error?) -> Void in
-                    completionHandler(url, item, range, flags, error)
+                    completionHandler(url, item, range, error)
                 })
                 if let forkProgress = forkProgress {
                     progress.addChild(forkProgress, withPendingUnitCount: 10)
                 }
             }
 
-            //Adjust range if needed.
+            // Adjust the range, if necessary.
             var extent: NSRange?
             if let requestedRange = range,
                let fileSize = item.documentSize??.intValue {
@@ -222,13 +224,13 @@ extension Extension {
                                             requestedRevision: itemCasted.entry.revision) { contentStorageTypeOptional, errorOptional in
                 if let error = errorOptional as NSError? {
                     self.logger.error("Error calling retrieveContentStorageType for identifier \"\(String(describing: itemIdentifier))\": \(error)")
-                    completionHandler(nil, nil, nil, [], error)
+                    completionHandler(nil, nil, nil, error)
                     return
                 }
 
                 guard let contentStorageType = contentStorageTypeOptional else {
                     self.logger.error("no error, but also no contentStorageType")
-                    completionHandler(nil, nil, nil, [], CommonError.internalError)
+                    completionHandler(nil, nil, nil, CommonError.internalError)
                     return
                 }
 
@@ -254,7 +256,7 @@ extension Extension {
         }
 
         progress.addChild(itemProgress, withPendingUnitCount: 5)
-        progress.cancellationHandler = { completionHandler(nil, nil, nil, [], NSError(domain: NSCocoaErrorDomain, code: NSUserCancelledError)) }
+        progress.cancellationHandler = { completionHandler(nil, nil, nil, NSError(domain: NSCocoaErrorDomain, code: NSUserCancelledError)) }
 
         return progress
     }
@@ -262,7 +264,8 @@ extension Extension {
     public func fetchContents(for itemIdentifier: NSFileProviderItemIdentifier,
                               version requestedVersion: NSFileProviderItemVersion?,
                               request: NSFileProviderRequest,
-                              completionHandler: @escaping (URL?, NSFileProviderItem?, Error?) -> Void) -> Progress {
+                              completionHandler: @escaping (URL?, NSFileProviderItem?, Error?) -> Void) -> Progress
+    {
         logger.debug("🧩 fetchContents(for:\(itemIdentifier.rawValue)) @ domainVersion(\(request.domainVersion?.description ?? "<nil>"))")
 
         return fetchContentsInternal(for: itemIdentifier,
@@ -270,7 +273,7 @@ extension Extension {
                                      range: nil,
                                      request: request,
                                      alignment: 0,
-                                     completionHandler: { (url: URL?, item: NSFileProviderItem?, _, _, error: Error?) -> Void in
+                                     completionHandler: { (url: URL?, item: NSFileProviderItem?, _, error: Error?) -> Void in
             completionHandler(url, item, error)
         })
     }
@@ -292,20 +295,12 @@ extension Extension {
         }
     }
 
-    private func createSparseFileWithRange(fileURL: URL, data: Data, range: NSRange) throws {
-        let fd = try throwErrno { open(fileURL.path, O_RDWR | O_CREAT, 0666) }
-        defer { close(fd) }
-        _ = try data.withUnsafeBytes { valuePtr in
-            try throwErrno { pwrite(fd, valuePtr.bindMemory(to: Int8.self).baseAddress, range.length, off_t(range.location)) }
-        }
-    }
-
     func fetchContentsInline(
         for itemIdentifier: NSFileProviderItemIdentifier,
         version requestedVersion: NSFileProviderItemVersion?,
         range: NSRange?,
         request: NSFileProviderRequest,
-        completionHandler: @escaping (URL?, NSFileProviderItem?, NSRange?, NSFileProviderMaterializationFlags, Error?) -> Void) -> Progress {
+        completionHandler: @escaping (URL?, NSFileProviderItem?, NSRange?, Error?) -> Void) -> Progress {
 
         let param: DomainService.DownloadItemParameter
         if let version = requestedVersion {
@@ -321,39 +316,23 @@ extension Extension {
         return connection.makeJSONCallWithReturn(param) { result in
             switch result {
             case .failure(let error):
-                completionHandler(nil, nil, nil, [], error.toPresentableError())
+                completionHandler(nil, nil, nil, error.toPresentableError())
             case .success((let response, let data)):
                 do {
                     let dataURL = self.makeTemporaryURL("fetchedContents")
-                    var returnedLength = NSRange(location: 0, length: data.count)
-                    var shouldCreateSparse = false
-                    var retFlags: NSFileProviderMaterializationFlags = [.knownSparseRanges]
-                    if var requestedRange = range {
-                        if requestedRange.length == -1 {
-                            requestedRange.length = data.count
-                        } else {
-                            retFlags = retFlags.removing(.knownSparseRanges)
-                        }
-                        if requestedRange.location != 0 {
-                            shouldCreateSparse = true
-                            retFlags = retFlags.removing(.knownSparseRanges)
-                        }
-                        returnedLength = requestedRange
-                    }
+                    let returnedLength = NSRange(location: 0, length: data.count)
 
-                    if shouldCreateSparse {
-                        try self.createSparseFileWithRange(fileURL: dataURL, data: data, range: returnedLength)
-                    } else {
-                        try data.write(to: dataURL)
-                    }
-                    completionHandler(dataURL, Item(response.item), returnedLength, retFlags, nil)
+                    try data.write(to: dataURL)
+                    completionHandler(dataURL, Item(response.item), returnedLength, nil)
                 } catch let error {
-                    completionHandler(nil, nil, nil, [], error.toPresentableError())
+                    completionHandler(nil, nil, nil, error.toPresentableError())
                 }
             }
         }
     }
 }
+
+#if os(macOS)
 
 extension Extension: NSFileProviderPartialContentFetching {
     public func fetchPartialContents(for itemIdentifier: NSFileProviderItemIdentifier,
@@ -365,7 +344,8 @@ extension Extension: NSFileProviderPartialContentFetching {
                                      completionHandler:
                                      @escaping (URL?, NSFileProviderItem?, NSRange,
                                                 NSFileProviderMaterializationFlags,
-                                                Error?) -> Void) -> Progress {
+                                                Error?) -> Void) -> Progress
+    {
 
         var requestedRange: NSRange? = nil
         if UserDefaults.sharedContainerDefaults.supportBRM {
@@ -385,16 +365,17 @@ extension Extension: NSFileProviderPartialContentFetching {
                                      alignment: alignment,
                                      completionHandler: { (url: URL?, item: NSFileProviderItem?,
                                                            returnRange: NSRange?,
-                                                           flags: NSFileProviderMaterializationFlags,
                                                            error: Error?) -> Void in
             if let returnRange = returnRange {
-                completionHandler(url, item, returnRange, flags, error)
+                completionHandler(url, item, returnRange, [], error)
             } else {
-                completionHandler(url, item, range, flags, error)
+                completionHandler(url, item, range, [], error)
             }
         })
     }
 }
+
+#endif
 
 extension Extension {
     func uploadThumbnail(item: DomainService.Entry,
@@ -438,7 +419,8 @@ extension Extension {
 
     public func modifyItem(_ item: NSFileProviderItem, baseVersion version: NSFileProviderItemVersion, changedFields: NSFileProviderItemFields,
                            contents newContents: URL?, options: NSFileProviderModifyItemOptions = [], request: NSFileProviderRequest,
-                           completionHandler: @escaping (NSFileProviderItem?, NSFileProviderItemFields, Bool, Error?) -> Void) -> Progress {
+                           completionHandler: @escaping (NSFileProviderItem?, NSFileProviderItemFields, Bool, Error?) -> Void) -> Progress
+    {
         let progress = Progress(totalUnitCount: 100)
         Task {
             do {
@@ -576,9 +558,9 @@ extension Extension {
                             switch res {
                             case .success(let resp):
                                 guard resp.contentAccepted else {
-                                    // The upload succeeded, but new contents weren't accepted.
-                                    // Inform the completion handler that contents no longer
-                                    // need to be applied but that it needs to refetch them.
+                                    // The upload succeeds, but the server doesn’t accept new contents.
+                                    // Inform the completion handler that the system no longer needs to apply the contents,
+                                    // but that it needs to refetch them.
                                     // Report all remaining changes as pending.
                                     if let url = newContents {
                                         let result = try await self.uploadResourceFork(item: resp.item, fork: fork, changedFields: changedFields,
@@ -617,7 +599,7 @@ extension Extension {
             item.parentItemIdentifier == .trashContainer {
             if UserDefaults.sharedContainerDefaults.trashDisabled {
                 logger.debug("🌀 trashing disabled: moving back")
-                // If an item is trashed but the trash is disabled, move the item back.
+                // If the system trashes an item, but the trash is in a disabled state, move the item back.
                 let param = DomainService.FetchItemParameter(itemIdentifier: DomainService.ItemIdentifier(item.itemIdentifier))
                 return try await withCheckedThrowingContinuation { continuation in
                     let callProgress = connection.makeJSONCall(param) { res in
@@ -763,7 +745,7 @@ extension Extension {
             type = .symlink
             // Symlinks store their payload in the symlinkTargetPath property of
             // the item. Upload them as item data here (even though they are more
-            // similar to an item property) so the server will report them
+            // similar to an item property), so the server reports them
             // as part of the userInfo on the way back. See DomainService.Entry's
             // database initializer.
             if fields.contains(.contents),
@@ -795,7 +777,7 @@ extension Extension {
                     let rsrcUrl = url.appendingPathComponent("..namedfork/rsrc")
                     fork = try Data(contentsOf: rsrcUrl, options: .alwaysMapped)
                 } catch CocoaError.fileNoSuchFile, CocoaError.fileReadNoSuchFile {
-                    // Ignore no such file errors.
+                    // Ignore "no such file" errors.
                     fork = nil
                 }
 
@@ -821,14 +803,13 @@ extension Extension {
         }
 
         if options.contains(.mayAlreadyExist),
-           type != .folder,    // Folders never have data.
-           type != .symlink,   // Symlinks always have data.
+           type != .folder,    // Folders don’t have data.
+           type != .symlink,   // Symlinks do have data.
            contentStorageType == nil {
-            // The system is calling with an already existing item that's dataless.
-            // This only happens during a reimport, for items that hadn't been
+            // The system is calling with an already-existing item that's dataless.
+            // This only happens during a reimport, for items that the system hasn’t
             // materialized before. In this case, return nil (which causes the
-            // system to delete the local item). Once the system re-enumerates
-            // the folder, it will then recreate the file.
+            // system to delete the local item). After the system reenumerates the folder, it then recreates the file.
             return (nil, [], false)
         }
 
@@ -908,18 +889,6 @@ extension Extension {
     }
 
     public func importDidFinish(completionHandler: @escaping () -> Void) {
-        completionHandler()
-    }
-    
-    public func pendingItemsDidChange(completionHandler: @escaping () -> Void) {
-        logger.debug("got an update that the pending set has changed, sending notification")
-        DistributedNotificationCenter.default().post(Notification(name: .pendingItemsDidChange))
-        completionHandler()
-    }
-    
-    public func materializedItemsDidChange(completionHandler: @escaping () -> Void) {
-        logger.debug("got an update that the materialized set has changed, sending notification")
-        DistributedNotificationCenter.default().post(Notification(name: .materializedItemsDidChange))
         completionHandler()
     }
 }

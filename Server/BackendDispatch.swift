@@ -2,7 +2,7 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-A component used by the server to provide a local server for cloud files.
+A component that the server uses to provide a local server for cloud files.
 */
 
 import Foundation
@@ -214,7 +214,7 @@ public class BackendDispatch: BackendCallRegistration {
         }
         guard let json = try? backend.encoder.encode(ret.0) else { return .internalServerError }
 
-        // To avoid reusing connections, close the connection after every request.
+        // To avoid reusing connections, close the connection after each request.
         if let data = ret.1 {
             let jsonString = json.base64EncodedString()
             return .raw(200, "OK", ["API-Response": jsonString, "Content-Length": "\(data.count)", "Connection": "Close"], throttlingWriter(data))
@@ -238,7 +238,7 @@ public class BackendDispatch: BackendCallRegistration {
                 var amountWritten = 0
                 var progressString = ""
                 while amountWritten < data.count {
-                    // Calculate the bandwidth every iteration, so that user modifications
+                    // Calculate the bandwidth at each iteration, so that user modifications
                     // during the server response take effect.
                     let outgoingBandwidthOptional = UserDefaults.sharedContainerDefaults.outgoingBandwidth
                     // If outgoing bandwidth isn't set or is 0, write the

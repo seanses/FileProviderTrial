@@ -28,7 +28,7 @@ extension Extension: NSFileProviderIncrementalContentFetching {
         let progress = Progress(totalUnitCount: 110)
 
         // Retrieve the chunks, which exist from the new version of the item
-        // (using its metadata). Verify that the version returned from self.item
+        // (using its metadata). Verify that the version from self.item
         // matches the requestedVersion.
         let itemProgress = self.item(for: itemIdentifier, request: request) { itemOptional, errorOptional in
             if let error = errorOptional {
@@ -47,9 +47,9 @@ extension Extension: NSFileProviderIncrementalContentFetching {
                 guard item.itemVersion == requestedVersion else {
                     self.logger.error("Could not incrementally fetch due to item version mismatch. Falling back to full fetch.")
                     self.logger.error("item.itemVersion = \(String(describing: item.itemVersion)), requestedVersion = \(String(describing: requestedVersion))")
-                    // Directly fetch the file. This can't be done incrementally because
+                    // Directly fetch the file. You can't do this incrementally because
                     // the metadata is only available for a different version than
-                    // the one requested.
+                    // the one you request.
                     let fetchProgress = self.fetchContents(for: itemIdentifier, version: requestedVersion, request: request,
                                                            completionHandler: completionHandler)
                     progress.addChild(fetchProgress, withPendingUnitCount: 95)
@@ -78,8 +78,7 @@ extension Extension: NSFileProviderIncrementalContentFetching {
                 }
 
                 let chunkingCompletionHandler = {
-                    (url: URL?, item: NSFileProviderItem?, range: NSRange?,
-                     flags: NSFileProviderMaterializationFlags, error: Error?) -> Void in
+                    (url: URL?, item: NSFileProviderItem?, range: NSRange?, error: Error?) -> Void in
                     let forkProgress = self.fetchResourceFork(sourceItem: itemCasted, url: url, item: item, error: error,
                                                               completionHandler: completionHandler)
                     if let forkProgress = forkProgress {
@@ -91,14 +90,14 @@ extension Extension: NSFileProviderIncrementalContentFetching {
                 switch contentStorageType {
                 case .inline:
                     self.logger.info("Incremental fetch requested, but file was inline, so doing full fetch.")
-                    // Directly fetch the file; this can't be done incrementally.
+                    // Directly fetch the file. This can't be incremental.
                     fetchProgress = self.fetchContents(for: itemIdentifier, version: requestedVersion, request: request,
                                                        completionHandler: completionHandler)
                 case .inChunkStore(let contentSha256sOfDataChunks):
                     self.logger.info("Incremental fetch requested, working on it")
-                    // Construct the new file with chunks of the old file on disk
+                    // Construct the new file with chunks of the original file on disk
                     // and chunks of the new version from the server. Find chunks
-                    // of the old file that match by computing the SHA hash,
+                    // of the original file that match by computing the SHA hash,
                     // finding the range of matching hashes, and copying that
                     // range to the new file.
 
@@ -122,8 +121,7 @@ extension Extension: NSFileProviderIncrementalContentFetching {
                                      item: NSFileProviderItem,
                                      previousVersionFileURL: URL?,
                                      completionHandler:
-                                     @escaping (URL?, NSFileProviderItem?, NSRange?,
-                                                NSFileProviderMaterializationFlags, Error?) -> Void) -> Progress {
+                                     @escaping (URL?, NSFileProviderItem?, NSRange?, Error?) -> Void) -> Progress {
         let progressForEachChunk: Int64 = 100
         let progress = Progress(totalUnitCount: Int64(Int64(contentSha256S.hashList.count) * progressForEachChunk))
 
@@ -136,7 +134,7 @@ extension Extension: NSFileProviderIncrementalContentFetching {
 
                 let existingChecksumAndMemoryMappedFile: ExistingChecksumAndMemoryMappedFile?
                 if let previousVersionFileURL = previousVersionFileURL {
-                    // Retrieve the chunks that exist from the old version of
+                    // Retrieve the chunks that exist from the original version of
                     // the item.
                     let memoryMappedFileData = try ChecksumComputer.memoryMapFile(file: previousVersionFileURL)
                     let chunks = try fileChunker.chunkData(data: memoryMappedFileData)
@@ -179,18 +177,18 @@ extension Extension: NSFileProviderIncrementalContentFetching {
                         do {
                             switch result {
                             case .failure(let error):
-                                completionHandler(nil, nil, nil, [], error)
+                                completionHandler(nil, nil, nil, error)
                                 return
                             case .success((_, let chunkData)):
                                 guard !chunkData.isEmpty else {
                                     self.logger.error("Received success response for GetDataChunk, but the data count was <= 0, identifier: \(String(describing: item.itemIdentifier))")
-                                    completionHandler(nil, nil, nil, [], CommonError.internalError)
+                                    completionHandler(nil, nil, nil, CommonError.internalError)
                                     return
                                 }
                                 try chunkData.append(fileURL: dataURL)
                             }
                         } catch {
-                            completionHandler(nil, nil, nil, [], error)
+                            completionHandler(nil, nil, nil, error)
                             return
                         }
                     }
@@ -198,9 +196,9 @@ extension Extension: NSFileProviderIncrementalContentFetching {
                     semaphore.wait()
                 }
 
-                completionHandler(dataURL, item, nil, [], nil)
+                completionHandler(dataURL, item, nil, nil)
             } catch let error {
-                completionHandler(nil, nil, nil, [], error)
+                completionHandler(nil, nil, nil, error)
                 return
             }
         }
@@ -233,7 +231,7 @@ extension Extension: NSFileProviderIncrementalContentFetching {
     func uploadRequiredChunks(resp: DomainService.CheckChunkExistsReturn,
                               chunks: [RangeAndSha256],
                               data: Data) async throws {
-        // This uploads each chunk in series, though it would be more efficient
+        // This uploads each chunk in series, though it is more efficient
         // to upload chunks in parallel (bounded, to not overload the system
         // when attempting to upload large files).
         for chunkSha256 in resp.chunksThatDoNotExist {

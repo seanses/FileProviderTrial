@@ -2,7 +2,7 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-An extension for sharing values used through the app group suite.
+An extension for sharing values that the app group suite uses.
 */
 
 import Foundation
@@ -137,7 +137,11 @@ public extension UserDefaults {
 
     var hostname: String {
         guard let hostname = string(forKey: "hostname") else {
+#if os(macOS)
             return "localhost"
+#else
+            return ""
+#endif
         }
         return hostname
     }
@@ -173,6 +177,17 @@ public extension UserDefaults {
         var allSecrets = dictionary(forKey: "secrets") ?? [String: Any]()
         allSecrets[domainIdentifier.rawValue] = secret
         set(allSecrets, forKey: "secrets")
+    }
+    
+    func offline(for domainIdentifier: NSFileProviderDomainIdentifier) -> Bool {
+        guard let allOffline = dictionary(forKey: "offline") else { return false }
+        return allOffline[domainIdentifier.rawValue] as? Bool ?? false
+    }
+    
+    func offline(_ value: Bool?, for domainIdentifier: NSFileProviderDomainIdentifier) {
+        var allOffline = dictionary(forKey: "offline") ?? [String: Any]()
+        allOffline[domainIdentifier.rawValue] = (value == true) ? true : nil
+        set(allOffline, forKey: "offline")
     }
 
     private func _domainVersion(for domainIdentifier: NSFileProviderDomainIdentifier) -> Data? {

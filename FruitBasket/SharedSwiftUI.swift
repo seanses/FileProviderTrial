@@ -7,7 +7,7 @@ A cell view that displays a label and has a delete action.
 
 import SwiftUI
 
-// This cell is configurable so it can be used in multiple contexts.
+// This cell is configurable so you can use it in multiple contexts.
 struct CellWithLabelAndDeleteAction: View {
     let label: String
     let deleteAction: () -> Void

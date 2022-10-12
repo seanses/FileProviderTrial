@@ -34,12 +34,12 @@ public class FileChunker {
     }
 
     private static func minChunkSize() -> Int {
-        // A 16 MB minimum chunk size.
+        // A 16-MB minimum chunk size.
         return 16 * 1024 * 1024
     }
 
     private static func maxChunkSize() -> Int {
-        // A 64 MB maximum chunk size.
+        // A 64-MB maximum chunk size.
         return 64 * 1024 * 1024
     }
 

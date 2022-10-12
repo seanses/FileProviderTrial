@@ -44,7 +44,7 @@ extension CommonError {
         case .tokenExpired:
             return .raw(409, "Sync token expired", headers, nil)
         case .simulatedError(let domain, let code, let localizedDescription):
-            // Map a simulated error to a 500 and include the original code in the message.
+            // Map a simulated error to a 500 message and include the original code in the message.
             return .raw(500, "Error \(code) in domain \(domain)\(localizedDescription.map { " (\($0))" } ?? "")", headers, nil)
         case .insufficientQuota:
             return .raw(401, "Insufficient quota", headers, nil)

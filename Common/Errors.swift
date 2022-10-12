@@ -2,7 +2,7 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-Common errors used throughout the project.
+Common errors for use throughout the project.
 */
 
 import Foundation

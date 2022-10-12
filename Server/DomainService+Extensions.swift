@@ -209,7 +209,7 @@ extension DomainService.Entry {
             if type == .symlink &&
                 !row[deletedKey] {
                 // Return the symlink target path inline with the item so that
-                // symlinks can be materialized as they're enumerated.
+                // the system can materialize symlinks as it enumerates them.
                 do {
                     symlinkTargetPath = String(data: try db.contentsFromRow(contentRow), encoding: .utf8)
                 } catch let error {

@@ -41,7 +41,7 @@ public class Throttle {
         }
     }
 
-    // The handler must be set before calling resume.
+    // You need to set the handler before calling resume.
     public func resume() {
         assert(handler != nil, "handler not set")
         timerSource.resume()

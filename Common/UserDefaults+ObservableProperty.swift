@@ -6,10 +6,10 @@ An extension that provides observable objects for the user's defaults database.
 */
 
 public extension UserDefaults {
-    /// An `ObservableObject` for a `UserDefaults` property that is KVO observable.
-    /// For a `UserDefaults` property to be KVO observable, the following must be true:
-    /// The property name must match the `UserDefaults` key.
-    /// The property must be marked `@objc dynamic.
+    /// An `ObservableObject` for a `UserDefaults` property that is KVO-observable.
+    /// For a `UserDefaults` property to be KVO-observable, the following needs to be true:
+    /// The property name needs to match the `UserDefaults` key.
+    /// The property needs to have a mark of `@objc dynamic.
     class ObservableProperty<Value: Equatable>: ObservableObject {
         private var observedDefaults: UserDefaults
         private let keyPath: WritableKeyPath<UserDefaults, Value>
@@ -26,7 +26,7 @@ public extension UserDefaults {
         /// Constructs a `UserDefaults.ObservableProperty`
         /// - Parameters:
         ///   - observedDefaults: A `UserDefaults` instance to observe.
-        ///   - keyPath: The keyPath to a KVO observable property in the
+        ///   - keyPath: The keyPath to a KVO-observable property in the
         ///   `observedDefaults` parameter.
         ///   - defaultValue: A default value to use if the new observed value is nil.
         public init(_ observedDefaults: UserDefaults, keyPath: WritableKeyPath<UserDefaults, Value>, defaultValue: Value) {

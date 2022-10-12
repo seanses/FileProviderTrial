@@ -79,6 +79,11 @@ public struct DomainConnection {
     private func makeJSONCallGeneric<ParameterType: JSONParameter>(
         _ parameter: ParameterType, _ data: Data? = nil, shouldRetry: Bool = true,
         _ block: @escaping (Swift.Result<(response: ParameterType.ReturnType, data: Data), Error>) -> Void) -> Progress {
+        if UserDefaults.sharedContainerDefaults.offline(for: NSFileProviderDomainIdentifier(rawValue: domainIdentifier)) {
+            logger.warning("✋ \(displayName)\(ParameterType.endpoint): offline")
+            block(.failure(CommonError.timedOut))
+            return Progress()
+        }
         let enc = JSONEncoder()
         let dec = JSONDecoder()
         enc.userInfo[DomainService.rootItemCodingInfoKey] = DomainConnection.rootItemIdentifier
@@ -112,7 +117,7 @@ public struct DomainConnection {
             logger.debug("🌐 \(displayName)/\(ParameterType.endpoint): \(String(describing: parameter))")
         }
 
-        let handler = { (data: Data?, response: URLResponse?, error: Error?) -> Void in
+        let handler = { (downloaded: URL?, response: URLResponse?, error: Error?) -> Void in
             if let error = error {
                 let nsError = error as NSError
                 if nsError.domain == NSURLErrorDomain &&
@@ -136,7 +141,13 @@ public struct DomainConnection {
                     self.logger.debug("❌ \(self.displayName)/\(ParameterType.endpoint): server error: \(String(describing: ret))")
                     return block(.failure(ret))
                 }
-                guard let data = data else { return block(.failure(CommonError.internalError)) }
+                guard let downloaded = downloaded else {
+                    return block(.failure(CommonError.internalError))
+                }
+                defer {
+                    try! FileManager().removeItem(at: downloaded)
+                }
+                let data = try Data(contentsOf: downloaded, options: [.alwaysMapped])
                 func finish(_ ret: ParameterType.ReturnType, _ data: Data?) {
                     if let data = data {
                         self.logger.debug("💟 \(self.displayName)/\(ParameterType.endpoint): \(String(describing: ret)) + \(data.count) bytes")
@@ -160,7 +171,7 @@ public struct DomainConnection {
             }
         }
 
-        let task = session.dataTask(with: request, completionHandler: handler)
+        let task = session.downloadTask(with: request, completionHandler: handler)
         task.resume()
         let progress = task.progress
         let existing = progress.cancellationHandler

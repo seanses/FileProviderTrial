@@ -48,7 +48,7 @@ public class ActionViewController: FPUIActionExtensionViewController {
     }
 
     public override func prepare(forAction actionIdentifier: String, itemIdentifiers: [NSFileProviderItemIdentifier]) {
-        // Each action must be added to this switch statement.
+        // You need to add each action to this switch statement.
         switch actionIdentifier {
         case "com.example.apple-samplecode.FruitBasket.ConflictAction":
             prepare(ConflictViewController(itemIdentifiers))

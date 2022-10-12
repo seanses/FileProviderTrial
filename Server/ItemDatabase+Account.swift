@@ -16,8 +16,7 @@ extension AccountService.Account {
             throw CommonError.itemNotFound(row[rootItemKey])
         }
         self.init(identifier: row[accountIdentifierKey], secret: row[accountSecretKey], displayName: row[accountNameKey],
-                  rootItem: DomainService.Entry(contentRow, db), tokenCheckNumber: row[tokenCheckNumberKey],
-                  flags: AccountFlags(rawValue: row[accountFlagsKey]))
+                  rootItem: DomainService.Entry(contentRow, db), tokenCheckNumber: row[tokenCheckNumberKey])
     }
 }
 
@@ -53,8 +52,7 @@ extension ItemDatabase {
             let secret = String(UUID().uuidString.suffix(12))
             let tokenCheckNumber = Int64.random(in: 0...Int64.max)
             _ = try conn.run(accountTable.insert(or: .replace, accountIdentifierKey <- domainIdentifier, rootItemKey <- realRoot,
-                                                 accountSecretKey <- secret, tokenCheckNumberKey <- tokenCheckNumber, accountNameKey <- displayName,
-                                                 accountFlagsKey <- Int(0)))
+                                                 accountSecretKey <- secret, tokenCheckNumberKey <- tokenCheckNumber, accountNameKey <- displayName))
             guard let entryRow = try conn.pluck(itemsTable.filter(idKey == realRoot)) else { throw CommonError.internalError }
             notifyAccountListeners()
             return Entry(entryRow, self)
@@ -75,16 +73,6 @@ extension ItemDatabase {
             try delete(item: foundRoot, revision: nil, recursive: true)
         }
         notifyAccountListeners()
-    }
-
-    public func getAccountFlags(for domainIdentifier: String) throws -> Account.AccountFlags {
-        let filter = accountTable.filter(accountIdentifierKey == domainIdentifier)
-        guard let row = try conn.pluck(filter) else { return [] }
-        return Account.AccountFlags(rawValue: row[accountFlagsKey])
-    }
-
-    public func setAccountFlags(for domainIdentifier: String, _ flags: Account.AccountFlags) throws {
-        try conn.run(accountTable.where(accountIdentifierKey == domainIdentifier).update(accountFlagsKey <- flags.rawValue))
     }
 
     private func notifyAccountListeners() {

@@ -18,7 +18,7 @@ public extension NSFileProviderDomainIdentifier {
     }
 }
 
-// Conversions to and from Int64 used with the domain service version content.
+// Conversions to and from Int64 to use with the domain service version content.
 extension Data {
     fileprivate init(_ revision: Int64) {
         self = Swift.withUnsafeBytes(of: revision) { Data($0) }

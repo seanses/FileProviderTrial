@@ -41,7 +41,8 @@ extension NSFileProviderPage {
     }
 }
 
-class ItemEnumerator: NSObject, NSFileProviderEnumerator {
+class ItemEnumerator: NSObject, NSFileProviderEnumerator
+{
     private let logger = Logger(subsystem: "com.example.apple-samplecode.FruitBasket", category: "enumeration")
 
     let enumeratedItemIdentifier: DomainService.ItemIdentifier
@@ -87,7 +88,7 @@ class ItemEnumerator: NSObject, NSFileProviderEnumerator {
                 // Ignore failures.
                 break
             case .success(let res):
-                // When an application presents a file, the system opens an enumerator
+                // When an app presents a file, the system opens an enumerator
                 // on the file to track it. FruitBasket then displays a lock icon
                 // in Finder next to any items that are in use. FruitBasket implements
                 // the icon as an `NSFileProviderItemDecoration`, using the `inUseDecoration`
@@ -111,7 +112,7 @@ class ItemEnumerator: NSObject, NSFileProviderEnumerator {
     }
 
     func pingPresentationStatus() {
-        // Regularly ping the server to inform it that the item is still being looking at.
+        // Regularly ping the server to inform it that the user is still looking at the item.
         let param = DomainService.PingLockParameter(identifier: enumeratedItemIdentifier,
                                                     owner: connection.displayName,
                                                     enumerationIndex: enumerationIndex)
@@ -201,7 +202,7 @@ class WorkingSetEnumerator: ItemEnumerator {
 class TrashEnumerator: ItemEnumerator {
     init(connection: DomainConnection) {
         // Enumerate everything from the trash. This isn't recursive;
-        // the File Provider framework will ask for children if relevant.
+        // the File Provider framework asks for subitems if relevant.
         super.init(enumeratedItemIdentifier: .trashContainer, connection: connection, recursive: false)
     }
 }

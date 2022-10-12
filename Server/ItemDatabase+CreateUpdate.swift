@@ -19,7 +19,7 @@ extension ItemDatabase {
             // Check that the name is valid.
             guard !name.isEmpty else { throw CommonError.parameterError }
 
-            // Check that the parent exists.
+            // Check that the containing item exists.
             guard let parentRow = try conn.pluck(itemsTable.filter(parent == idKey)),
                 parentRow[deletedKey] == false else {
                     throw CommonError.itemNotFound(parent)
@@ -35,14 +35,14 @@ extension ItemDatabase {
                     return (entry.id, entry.revision)
                 case .bounce:
                     // Rename the existing file by appending a unique number to
-                    // the end of its name. This way, if a swap is synced, e.g.
-                    // a->b + b->a, the following operations will be performed:
+                    // the end of its name. This way, if the system syncs a swap,
+                    // such as a->b + b->a, it performs the following operations:
                     // 1. b -> b2, a -> b
                     // 2. b2 -> a
-                    // Which produces the correct results. A more complex
-                    // database representation could keep the bounce number and
+                    // This produces the correct results. A more complex
+                    // database representation can keep the bounce number and
                     // the filename separate, then only apply the bounce if
-                    // necessary. That would have the advantage of bouncing the
+                    // necessary. That has the advantage of bouncing the
                     // newer file, which is closer to the user's expectations in
                     // case of a real bounce.
                     let bounceName = try bounceFileIfNecessary(parent, name)
@@ -70,9 +70,9 @@ extension ItemDatabase {
         return try conn.transaction {
             guard let oldItem = try conn.pluck(item) else { throw CommonError.itemNotFound(identifier) }
             guard oldItem[deletedKey] == false else { throw CommonError.itemNotFound(identifier) }
-            // Check that the revision has the same version as the old item.
+            // Check that the revision has the same version as the original item.
             guard revision.content == Version(oldItem).content else { throw CommonError.wrongRevision(Entry(oldItem, self)) }
-            // Check that the new size won't exceed the user's quota.
+            // Check that the new size doesn’t exceed the user's quota.
             let newQuotaUsed = try computeNewQuotaUsed(identifier: identifier, oldVersion: oldItem[contentRevKey],
                                                        newSize: contentStorageTypeParameter.contentLength())
             // A quota of 0 means unlimited.
@@ -136,7 +136,7 @@ extension ItemDatabase {
             }
             usedQuota = newQuotaUsed
             if !conflict {
-                // Delete all non-conflicts other than this one.
+                // Delete all nonconflicts other than this one.
                 let oldContents: Table
                 if !isResourceFork {
                     oldContents = contentsTable.filter(idKey == identifier && conflictKey != true &&
@@ -153,7 +153,7 @@ extension ItemDatabase {
 
                 try conn.run(oldContents.delete())
                 if !isResourceFork {
-                    // Delete the thumbnail of the old version.
+                    // Delete the thumbnail of the original version.
                     try conn.run(item.update(thumbnailKey <- Data()))
                 }
             } else {
@@ -203,12 +203,12 @@ extension ItemDatabase {
             let newName = itemName ?? oldItem[nameKey]
             guard !newName.isEmpty else { throw CommonError.parameterError }
             let newParent = parent ?? oldItem[parentKey]
-            // Check whether the new parent still exists.
+            // Check whether the new containing item still exists.
             guard let parentRow = try conn.pluck(itemsTable.filter(newParent == idKey)),
                 parentRow[deletedKey] == false else {
                     throw CommonError.itemNotFound(newParent)
             }
-            // Check that it can be renamed or moved to this location.
+            // Check that you can rename it or move it to this location.
             let existingItem = itemsTable.filter(newName == nameKey && newParent == parentKey && deletedKey == false &&
                                                  idKey != identifier && typeKey != .root)
             if let row = try conn.pluck(existingItem) {
@@ -224,10 +224,10 @@ extension ItemDatabase {
                 }
             }
 
-            // To avoid cycles, fetch all parents for the new location.
+            // To avoid cycles, fetch all containing items for the new location.
             let statement = try parentQueryWithFilter(newParent)
             let parentIdentifiers = statement.map({ RowWrapper(statement.columnNames, $0) }).map({ $0[idKey] })
-            // Confirm that the item isn't one of the parents of the new
+            // Confirm that the item isn't one of the containing items of the new
             // location.
             if oldItem[typeKey] != .root {
                 if parentIdentifiers.contains(where: { $0 == identifier }) {

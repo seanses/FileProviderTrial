@@ -40,8 +40,8 @@ class AuthenticationViewController: NSViewController, ConcreteActionViewControll
 
     @IBAction func authenticate(_ sender: Any) {
         Task {
-            // Look up the secret via the server and set it.
-            // This is meant to be a demonstration of authentication-related
+            // Look up the secret by querying the server and set it.
+            // This is a demonstration of authentication-related
             // flows and is intentionally insecure.
             let conn = DomainConnection(domainIdentifier: self.actionViewController.domain.identifier.rawValue, secret: "",
                                               hostname: UserDefaults.sharedContainerDefaults.hostname, port: self.port)
@@ -49,7 +49,7 @@ class AuthenticationViewController: NSViewController, ConcreteActionViewControll
             let domain = avc.domain
             do {
                 let resp = try await conn.makeJSONCall(AccountService.ListAccountParameter())
-                // Find the secret for the domain being authenticated.
+                // Find the secret for the domain you’re authenticating.
                 guard let account = resp.accounts.first(where: { $0.identifier == domain.identifier.rawValue }) else {
                     throw CommonError.domainNotFound
                 }
@@ -61,6 +61,7 @@ class AuthenticationViewController: NSViewController, ConcreteActionViewControll
 
                 do {
                     try await manager.signalErrorResolved(NSFileProviderError(.notAuthenticated))
+                    
                     self.logger.info("✅ succeeded to signal insufficientQuota error as resolved for \(domain.displayName)")
                     avc.extensionContext.completeRequest()
                 } catch let error as NSError {

@@ -39,7 +39,7 @@ extension Error {
         case .notImplemented:
             return NSError(domain: NSCocoaErrorDomain, code: NSFeatureUnsupportedError, userInfo: nil)
         case .clientCrashingError:
-            exit(0) // The server requested a crash.
+            exit(0) // The server requests a crash.
         case .simulatedError(let domain, let code, let localizedDescription):
             var userInfo: [String: Any]?
             if let localizedDescription = localizedDescription {

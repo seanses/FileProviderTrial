@@ -769,7 +769,7 @@ extension DomainService {
             return String(cString: xattr_name_with_flags(base, XATTR_FLAG_SYNCABLE | XATTR_FLAG_NO_EXPORT))
         }()
         public static let pinnedXattr: String = {
-            // The pinning state is stored as an xattr and syncs across domains,
+            // This sample stores the pinning state as an xattr and syncs across domains,
             // which is quite unrealistic.
             let base = "com.example.fruitbasket.pinned"
             return String(cString: xattr_name_with_flags(base, XATTR_FLAG_SYNCABLE | XATTR_FLAG_NO_EXPORT))
@@ -803,7 +803,7 @@ extension DomainService {
         public static let endpoint = "lock/ping"
         public static let method = JSONMethod.POST
 
-        // The file gets unlocked automatically if the client doesn't respond
+        // This sample unlocks the file automatically if the client doesn't respond
         // before the unlock interval expires.
         public static let unlockInterval = TimeInterval(30)
         // The interval for client pings.

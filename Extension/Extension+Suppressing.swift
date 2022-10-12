@@ -8,6 +8,8 @@ Adds interaction suppression to the extension.
 import os.log
 import FileProvider
 
+#if os(macOS)
+
 extension Extension: NSFileProviderUserInteractionSuppressing {
     public func setInteractionSuppressed(_ suppression: Bool, forIdentifier suppressionIdentifier: String) {
         self.logger.info("Received call to set suppression \(suppression) for identifier \(suppressionIdentifier) in domain \(String(describing: self.domain.identifier))")
@@ -30,3 +32,5 @@ extension Extension: NSFileProviderUserInteractionSuppressing {
         return currentDomain?.contains(suppressionIdentifier) ?? false
     }
 }
+
+#endif

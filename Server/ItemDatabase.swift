@@ -41,7 +41,6 @@ let accountIdentifierKey = Expression<String>("accountIdentifier")
 let accountNameKey = Expression<String>("accountName")
 let accountSecretKey = Expression<String>("secret")
 let tokenCheckNumberKey = Expression<Int64>("tokenCheckNumber")
-let accountFlagsKey = Expression<Int>("flags")
 
 let unlockTable = Table("unlock")
 let enumerationIndexKey = Expression<Int64>("enumerationIndex")
@@ -206,7 +205,6 @@ public class ItemDatabase {
                 $0.column(accountNameKey)
                 $0.column(accountSecretKey, collate: .binary)
                 $0.column(tokenCheckNumberKey)
-                $0.column(accountFlagsKey)
             })
 
             try conn.run(unlockTable.create {
@@ -231,11 +229,10 @@ public class ItemDatabase {
             })
 
             conn.userVersion = dbVersion
-
-            // Reserve some item IDs. These item IDs should never be handed out
-            // to a provider, but are used on the provider side (0 is the root,
-            // 1 is the trash). The provider's IDs are translated during encoding
-            // and decoding.
+            
+            // Reserve some item IDs. On the file provider extension side, this sample uses 0 and 1 for the (domain-specific) root and trash
+            // (root and trash get their own unique encoding in the wire format). To avoid confusion, this sample excludes 0 and 1
+            // from the set of valid item identifiers in the database. It also excludes the remaining identifiers 2-9 to make the number round.
             for i in 0..<reservedItemCount {
                 try conn.run(itemsTable.insert(idKey <- ItemIdentifier(Int64(i)), nameKey <- "reserved", parentKey <- 0, rankKey <- allocateNewRank(),
                                                typeKey <- .file, deletedKey <- true))
@@ -251,15 +248,6 @@ public class ItemDatabase {
         }
         usedQuota = try computeUsedQuota(from: 0)
         currentMaximumRank = try conn.scalar(itemsTable.select(rankKey.max))!
-
-        conn.updateHook { [weak self] operation, db, table, rowid in
-            guard let strongSelf = self else { return }
-            strongSelf.updateHooks.forEach { hook in
-                if let hook = hook {
-                    hook(operation, db, table, rowid)
-                }
-            }
-        }
     }
     
     func allocateNewRank() -> Int64 {
@@ -316,7 +304,7 @@ public class ItemDatabase {
                 // Make a new item name.
                 let name: String
                 if versions.count == 1 {
-                    // If only one version is being kept, use the original name.
+                    // If there is only one version, use the original name.
                     name = baseItem[nameKey]
                 } else {
                     // When keeping multiple versions, name them according to their origin.
@@ -340,7 +328,7 @@ public class ItemDatabase {
             }
             // Remove all remaining conflicts.
             try conn.run(contentsTable.filter(idKey == item && conflictKey == true).delete())
-            // Finally, signal the parent.
+            // Finally, signal the containing item.
             notifyChangeListeners(baseItem[parentKey])
         }
     }
@@ -464,7 +452,7 @@ public class ItemDatabase {
             guard let row = try self.conn.pluck(item) else { throw CommonError.itemNotFound(identifier) }
             if let revision = revision {
                 if !UserDefaults.sharedContainerDefaults.ignoreContentVersionOnDeletion {
-                    // Always ignore the metadata version here; if a file is deleted, and then renamed somewhere else, the deletion wins.
+                    // Ignore the metadata version here. If you delete a file, and then rename it somewhere else, the deletion wins.
                     guard revision.content == Version(row).content else { throw CommonError.deletionRejected(Entry(row, self)) }
                 }
             }
@@ -580,7 +568,7 @@ public class ItemDatabase {
         try updateAndSignal(itemIds: [identifier], signal: .parent)
     }
 
-    // Remove a lock for the specified index. If no index is given, remove all locks.
+    // Remove a lock for the specified index. If there isn’t an index, remove all locks.
     func removeLock(for identifier: ItemIdentifier, _ enumerationIndex: Int64?) throws {
         if let index = enumerationIndex {
             try conn.run(unlockTable.where(enumerationIndexKey == index && idKey == identifier).delete())
@@ -673,10 +661,6 @@ public class ItemDatabase {
         } else {
             try conn.run(simulatedErrorTable.filter(idKey == identifier).delete())
         }
-    }
-
-    func addUpdateHook(_ callback: ((_ operation: Connection.Operation, _ db: String, _ table: String, _ rowid: Int64) -> Void)?) {
-        updateHooks.append(callback)
     }
 
     func refreshPushToken(_ token: DomainService.PushDevice.Token, _ topic: DomainService.PushDevice.PushTopic) throws {

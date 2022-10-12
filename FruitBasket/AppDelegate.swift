@@ -2,7 +2,7 @@
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:
-A delegate that manages the app's lifecycle.
+A delegate that manages the app's life cycle.
 */
 
 import Cocoa
@@ -475,15 +475,13 @@ now: \(String(describing: UserDefaults.sharedContainerDefaults.accountQuota))
             let entry = entries.first else { return }
         let domain = entry.domain
 
+        let newState = !entry.offline
         Task {
-            do {
-                let param = AccountService.SetOfflineModeParameter(identifier: domain.identifier.rawValue, enableOffline: !entry.offline)
-                let resp = try await self.accountConnection.makeJSONCall(param)
-                let status = resp.offline ? "Offline" : "Online"
-                self.logger.debug("Domain offline status changed to \(status)")
-            } catch let error as NSError {
-                self.logger.error("Cannot change domain offline status\(error)")
-            }
+            UserDefaults.sharedContainerDefaults.offline(newState, for: domain.identifier)
+            let status = newState ? "Offline" : "Online"
+            self.logger.debug("Domain offline status changed to \(status)")
+
+            DistributedNotificationCenter.default().post(Notification(name: .accountsDidChange))
         }
     }
     

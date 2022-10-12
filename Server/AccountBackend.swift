@@ -31,8 +31,6 @@ public class AccountBackend: DispatchBackend {
         dispatch.registerBackendCall(AccountBackend.listAccounts)
         dispatch.registerBackendCall(AccountBackend.createAccount)
         dispatch.registerBackendCall(AccountBackend.removeAccount)
-        dispatch.registerBackendCall(AccountBackend.setOfflineMode)
-        dispatch.registerBackendCall(AccountBackend.getOfflineMode)
         dispatch.registerBackendCall(AccountBackend.resetSyncAnchor)
     }
 
@@ -117,23 +115,6 @@ public class AccountBackend: DispatchBackend {
         }
         DistributedNotificationCenter.default().post(Notification(name: NSNotification.Name.accountsDidChange))
         return AccountService.RemoveAccountReturn()
-    }
-
-    func setOfflineMode(_ param: AccountService.SetOfflineModeParameter) throws -> AccountService.SetOfflineModeReturn {
-        var flags = try db.getAccountFlags(for: param.identifier)
-        if param.enableOffline {
-            flags.insert(.Offline)
-        } else {
-            flags.remove(.Offline)
-        }
-        try db.setAccountFlags(for: param.identifier, flags)
-
-        DistributedNotificationCenter.default.post(Notification(name: NSNotification.Name.accountsDidChange))
-        return AccountService.SetOfflineModeReturn(offline: try db.getAccountFlags(for: param.identifier).contains(.Offline))
-    }
-
-    func getOfflineMode(_ param: AccountService.GetOfflineModeParameter) throws -> AccountService.GetOfflineModeReturn {
-        return AccountService.GetOfflineModeReturn(offline: try db.getAccountFlags(for: param.identifier).contains(.Offline))
     }
 
     func resetSyncAnchor(_ param: AccountService.ResetSyncAnchorParameter) throws -> AccountService.ResetSyncAnchorReturn {

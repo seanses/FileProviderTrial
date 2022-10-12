@@ -12,33 +12,20 @@ import FileProvider
 
 public enum AccountService {
     public struct Account: Codable {
-        public struct AccountFlags: OptionSet, Codable {
-            public let rawValue: Int
-
-            public static let Offline = AccountFlags(rawValue: 1 << 0)
-
-            public init(rawValue: Int) {
-                self.rawValue = rawValue
-            }
-        }
-
         public let identifier: String
         public let secret: String
         public let displayName: String
         public let rootItem: DomainService.Entry
-        // This is a random number assigned at account creation and used to test
+        // This is a random number this sample assigns at account creation and uses to test
         // rank expiration.
         public let tokenCheckNumber: Int64
-        public var flags: AccountFlags
 
-        public init(identifier: String, secret: String, displayName: String, rootItem: DomainService.Entry, tokenCheckNumber: Int64,
-                    flags: Account.AccountFlags) {
+        public init(identifier: String, secret: String, displayName: String, rootItem: DomainService.Entry, tokenCheckNumber: Int64) {
             self.identifier = identifier
             self.secret = secret
             self.displayName = displayName
             self.rootItem = rootItem
             self.tokenCheckNumber = tokenCheckNumber
-            self.flags = flags
         }
     }
 
@@ -116,46 +103,6 @@ public enum AccountService {
     }
     public struct RemoveAccountReturn: Codable {
         public init() { }
-    }
-
-    public struct SetOfflineModeParameter: JSONParameter {
-        public typealias ReturnType = SetOfflineModeReturn
-        public static let endpoint = "account/offline/set"
-        public static let method = JSONMethod.POST
-
-        public let identifier: String
-        public let enableOffline: Bool
-
-        public init(identifier: String, enableOffline: Bool) {
-            self.identifier = identifier
-            self.enableOffline = enableOffline
-        }
-    }
-    public struct SetOfflineModeReturn: Codable {
-        public let offline: Bool
-
-        public init(offline: Bool) {
-            self.offline = offline
-        }
-    }
-
-    public struct GetOfflineModeParameter: JSONParameter {
-        public typealias ReturnType = GetOfflineModeReturn
-        public static let endpoint = "account/offline/get"
-        public static let method = JSONMethod.GET
-
-        public let identifier: String
-
-        public init(identifier: String) {
-            self.identifier = identifier
-        }
-    }
-    public struct GetOfflineModeReturn: Codable {
-        public let offline: Bool
-
-        public init(offline: Bool) {
-            self.offline = offline
-        }
     }
 
     public struct ResetSyncAnchorParameter: JSONParameter {

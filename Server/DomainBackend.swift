@@ -56,27 +56,12 @@ public class DomainBackend: NSObject, DispatchBackend {
         decoder.userInfo[DomainService.trashItemCodingInfoKey] = trashItemIdentifier
         super.init()
         armLockExpiryTimer()
-        db.addUpdateHook { [weak self] operation, database, table, rowid in
-            guard let strongSelf = self else { return }
-            if table == "accounts" {
-                do {
-                    strongSelf.account.flags = try strongSelf.db.getAccountFlags(for: identifier)
-                } catch let error as NSError {
-                    strongSelf.logger.error("🚩 \(strongSelf.displayName): flags update failure: \(error)")
-                }
-            }
-        }
     }
 
     public func checkForDomainApproval(_ headers: [String: String], _ path: String) throws {
         if !self.defaults.ignoreAuthentication && headers["x-authorization"] != account.secret {
             logger.error("✋ \(self.displayName)\(path): missing authorization")
             throw CommonError.authRequired
-        }
-
-        if account.flags.contains(.Offline) {
-            logger.error("✋ \(self.displayName)\(path): offline")
-            throw CommonError.timedOut
         }
     }
 
@@ -230,9 +215,9 @@ extension DomainBackend {
             if param.type == .folder || param.type == .root {
                 file = try db.updateFile(identifier: identifier, revision: version, metadata: param.metadata)
             } else {
-                // If the caller didn't pass a contentStorageTypeParameter,
+                // If the caller doesn’t pass a contentStorageTypeParameter,
                 // there's nothing to persist in the data side. This can occur,
-                // for example, when createItem is called without .contents in
+                // for example, when the system calls createItem without .contents in
                 // the fields parameter.
                 if let contentStorageTypeParameter = contentStorageTypeParameter {
                     let temp = try db.updateFile(identifier: identifier, revision: version,
@@ -246,7 +231,7 @@ extension DomainBackend {
             return DomainService.CreateReturn(item: file)
         } catch let error {
             // If creating the file's content fails, delete the file entry
-            // that was created in the database.
+            // in the database.
             try db.delete(item: identifier, revision: version, recursive: true)
             throw error
         }

@@ -31,7 +31,7 @@ extension Extension: NSFileProviderThumbnailing {
             }
         }
 
-        // Thumbnails for all items have been fetched; call the completion handler.
+        // The extension has fetched the thumbnails for all items, so call the completion handler.
         group.notify(queue: queue) {
             completionHandler(nil)
         }

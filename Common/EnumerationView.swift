@@ -10,14 +10,6 @@ import FileProvider
 import UniformTypeIdentifiers
 import os.log
 
-public extension NSNotification.Name {
-    static let pendingItemsDidChange: NSNotification.Name = NSNotification.Name(rawValue: Bundle(for:
-        EnumerationView.EnumeratorObservableObject.self).bundleIdentifier!.appending(".pendingItemsDidChange"))
-    static let materializedItemsDidChange: NSNotification.Name = NSNotification.Name(rawValue: Bundle(for:
-        EnumerationView.EnumeratorObservableObject.self).bundleIdentifier!.appending(".materializedItemsDidChange"))
-
-}
-
 public struct EnumerationView: View {
     public enum EnumerationType {
         case pending
@@ -41,7 +33,7 @@ public struct EnumerationView: View {
         internal var anchor: NSFileProviderSyncAnchor!
         internal let enumerationType: EnumerationType
         
-        // State is used primarily for logging.
+        // The state this sample uses primarily for logging.
         enum State {
             case fetchingAnchor
             case enumeratingItems
@@ -63,20 +55,14 @@ public struct EnumerationView: View {
             
             switch which {
             case .pending:
-                DistributedNotificationCenter.default().addObserver(self, selector: #selector(enumeratedSetDidChange(_:)),
-                                                                    name: .pendingItemsDidChange, object: nil,
-                                                                    suspensionBehavior: .deliverImmediately)
+                NotificationCenter.default.addObserver(self, selector: #selector(enumeratedSetDidChange(_:)),
+                                                         name: .fileProviderPendingSetDidChange, object: nil)
             case .materialized:
-                DistributedNotificationCenter.default().addObserver(self, selector: #selector(enumeratedSetDidChange(_:)),
-                                                                    name: .materializedItemsDidChange, object: nil,
-                                                                    suspensionBehavior: .deliverImmediately)
+                NotificationCenter.default.addObserver(self, selector: #selector(enumeratedSetDidChange(_:)),
+                                                                    name: .fileProviderMaterializedSetDidChange, object: nil)
             }
         }
-        
-        deinit {
-            DistributedNotificationCenter.default().removeObserver(self)
-        }
-        
+
         @objc
         func enumeratedSetDidChange(_ notification: NSNotification) {
             signal()
@@ -168,7 +154,7 @@ public struct EnumerationView: View {
         }
         
         // The entry is a wrapper for easier access to the properties
-        // displayed in the table.
+        // that display in the table.
         struct Entry: Identifiable, Hashable {
             var id: String { item.itemIdentifier.rawValue }
             

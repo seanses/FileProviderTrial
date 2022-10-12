@@ -9,8 +9,8 @@ import FileProvider
 import SwiftUI
 import Common
 
-// This controller provides the window for viewing items for a domain. It can be
-// configured to show either the pending set or the materialized set.
+// This controller provides the window for viewing items for a domain. You can
+// configure it to show either the pending set or the materialized set.
 class EnumerationWindowController: NSWindowController {
     init(_ domain: NSFileProviderDomain, _ which: EnumerationView.EnumerationType) {
         let size = CGSize(width: 700, height: 300)

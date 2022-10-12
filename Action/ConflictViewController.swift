@@ -74,7 +74,7 @@ public class ConflictViewController: NSViewController, ConcreteActionViewControl
             closeButton.isEnabled = true
             closeButton.title = "Keep \(selected) versions"
         } else {
-            // No versions are selected; disable the close button.
+            // No versions are in a selected state; disable the close button.
             closeButton.isEnabled = false
             closeButton.title = "Keep selected versions"
         }
@@ -186,4 +186,13 @@ class EditDateValueTransformer: ValueTransformer {
         dateFormatter.doesRelativeDateFormatting = true
         return dateFormatter.string(from: val)
     }
+}
+
+extension NSFileProviderService: @unchecked Sendable {
+}
+
+extension NSXPCConnection: @unchecked Sendable {
+}
+
+extension NSData: @unchecked Sendable {
 }
