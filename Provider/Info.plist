@@ -43,7 +43,7 @@
 				<key>Comment</key>
 				<string>Note that we are comparing with != YES instead of == NO in the query to avoid having to write out the value for the default case</string>
 				<key>NSExtensionFileProviderActionActivationRule</key>
-				<string>domainUserInfo.pinnedFeatureEnabled == 1 &amp;&amp; SUBQUERY ( fileproviderItems, $item, $item.userInfo.pinned != YES &amp;&amp; !($item.contentType.identifier UTI-CONFORMS-TO "public.folder") ).@count &gt; 0</string>
+				<string>domainUserInfo.pinnedFeatureEnabled == 1 &amp;&amp; SUBQUERY ( fileproviderItems, $item, $item.userInfo.pinned != YES &amp;&amp; !($item.contentType.identifier UTI-CONFORMS-TO &quot;public.folder&quot;) ).@count &gt; 0</string>
 				<key>NSExtensionFileProviderActionIdentifier</key>
 				<string>com.example.apple-samplecode.FruitBasket.Action.Pin</string>
 				<key>NSExtensionFileProviderActionName</key>
@@ -61,7 +61,7 @@
 				<key>Comment</key>
 				<string>Note that we are comparing with != YES instead of == NO in the query to avoid having to write out the value for the default case</string>
 				<key>NSExtensionFileProviderActionActivationRule</key>
-				<string>SUBQUERY ( fileproviderItems, $item, $item.userInfo.heart != YES &amp;&amp; $item.itemIdentifier != "NSFileProviderRootContainerItemIdentifier" ).@count &gt; 0</string>
+				<string>SUBQUERY ( fileproviderItems, $item, $item.userInfo.heart != YES &amp;&amp; $item.itemIdentifier != &quot;NSFileProviderRootContainerItemIdentifier&quot; ).@count &gt; 0</string>
 				<key>NSExtensionFileProviderActionIdentifier</key>
 				<string>com.example.apple-samplecode.FruitBasket.Action.Heart</string>
 				<key>NSExtensionFileProviderActionName</key>
@@ -77,7 +77,7 @@
 			</dict>
 			<dict>
 				<key>NSExtensionFileProviderActionActivationRule</key>
-				<string>SUBQUERY ( fileproviderItems, $item, ($item.contentType.identifier UTI-CONFORMS-TO "public.folder") &amp;&amp; $item.userInfo.isShared.inherited != YES &amp;&amp; $item.inheritedUserInfo.isShared.inherited != YES &amp;&amp; $item.itemIdentifier != "NSFileProviderRootContainerItemIdentifier" ).@count &gt; 0</string>
+				<string>SUBQUERY ( fileproviderItems, $item, ($item.contentType.identifier UTI-CONFORMS-TO &quot;public.folder&quot;) &amp;&amp; $item.userInfo.isShared.inherited != YES &amp;&amp; $item.inheritedUserInfo.isShared.inherited != YES &amp;&amp; $item.itemIdentifier != &quot;NSFileProviderRootContainerItemIdentifier&quot; ).@count &gt; 0</string>
 				<key>NSExtensionFileProviderActionIdentifier</key>
 				<string>com.example.apple-samplecode.FruitBasket.Action.StartSharing</string>
 				<key>NSExtensionFileProviderActionName</key>
@@ -101,7 +101,7 @@
 			</dict>
 			<dict>
 				<key>NSExtensionFileProviderActionActivationRule</key>
-				<string>SUBQUERY ( fileproviderItems, $item, ($item.contentType.identifier UTI-CONFORMS-TO "public.folder") &amp;&amp; $item.isDownloaded == YES ).@count == 1</string>
+				<string>SUBQUERY ( fileproviderItems, $item, ($item.contentType.identifier UTI-CONFORMS-TO &quot;public.folder&quot;) &amp;&amp; $item.isDownloaded == YES ).@count == 1</string>
 				<key>NSExtensionFileProviderActionIdentifier</key>
 				<string>com.example.apple-samplecode.FruitBasket.Action.EvictFolder</string>
 				<key>NSExtensionFileProviderActionName</key>
@@ -183,7 +183,7 @@
 		<array>
 			<dict>
 				<key>ActivationRule</key>
-				<string>destinationItem.filename CONTAINS "-" AND sourceItem.filename CONTAINS "nohyphen" AND action == "Rename"</string>
+				<string>destinationItem.filename CONTAINS &quot;-&quot; AND sourceItem.filename CONTAINS &quot;nohyphen&quot; AND action == &quot;Rename&quot;</string>
 				<key>SubInteractions</key>
 				<array>
 					<dict>
@@ -222,7 +222,7 @@
 			</dict>
 			<dict>
 				<key>ActivationRule</key>
-				<string>sourceItem.filename CONTAINS "maynotcreate" AND action == "Create"</string>
+				<string>sourceItem.filename CONTAINS &quot;maynotcreate&quot; AND action == &quot;Create&quot;</string>
 				<key>SubInteractions</key>
 				<array>
 					<dict>
@@ -261,7 +261,7 @@
 			</dict>
 			<dict>
 				<key>ActivationRule</key>
-				<string>sourceItem.filename CONTAINS "maynotrename" AND action == "Rename"</string>
+				<string>sourceItem.filename CONTAINS &quot;maynotrename&quot; AND action == &quot;Rename&quot;</string>
 				<key>HelpURL</key>
 				<string>https://developer.apple.com/documentation/fileprovider</string>
 				<key>SubInteractions</key>
@@ -302,7 +302,7 @@
 			</dict>
 			<dict>
 				<key>ActivationRule</key>
-				<string>domainUserInfo.shouldWarnOnImportingToFolder == 1 AND destinationItem.filename CONTAINS "maynotimporthere" AND (action == "MoveIn" OR action == "CopyIn")</string>
+				<string>domainUserInfo.shouldWarnOnImportingToFolder == 1 AND destinationItem.filename CONTAINS &quot;maynotimporthere&quot; AND (action == &quot;MoveIn&quot; OR action == &quot;CopyIn&quot;)</string>
 				<key>SubInteractions</key>
 				<array>
 					<dict>
@@ -347,7 +347,7 @@
 			</dict>
 			<dict>
 				<key>ActivationRule</key>
-				<string>(destinationItem.resolvedUserInfo.isShared.inherited == YES) AND (action == "Create" OR action == "MoveIn" OR action == "Move" OR action == "CopyIn")</string>
+				<string>(destinationItem.resolvedUserInfo.isShared.inherited == YES) AND (action == &quot;Create&quot; OR action == &quot;MoveIn&quot; OR action == &quot;Move&quot; OR action == &quot;CopyIn&quot;)</string>
 				<key>SubInteractions</key>
 				<array>
 					<dict>
@@ -390,7 +390,7 @@
 			</dict>
 			<dict>
 				<key>ActivationRule</key>
-				<string>destinationItem.filename CONTAINS "cannotimporthere" AND (action == "MoveIn" OR action == "CopyIn")</string>
+				<string>destinationItem.filename CONTAINS &quot;cannotimporthere&quot; AND (action == &quot;MoveIn&quot; OR action == &quot;CopyIn&quot;)</string>
 				<key>SubInteractions</key>
 				<array>
 					<dict>
@@ -429,7 +429,7 @@
 			</dict>
 			<dict>
 				<key>ActivationRule</key>
-				<string>sourceItem.filename CONTAINS "cannotexport" AND action == "MoveOut"</string>
+				<string>sourceItem.filename CONTAINS &quot;cannotexport&quot; AND action == &quot;MoveOut&quot;</string>
 				<key>SubInteractions</key>
 				<array>
 					<dict>
@@ -468,7 +468,7 @@
 			</dict>
 			<dict>
 				<key>ActivationRule</key>
-				<string>sourceItem.filename CONTAINS "maynotexport" AND action == "MoveOut"</string>
+				<string>sourceItem.filename CONTAINS &quot;maynotexport&quot; AND action == &quot;MoveOut&quot;</string>
 				<key>SubInteractions</key>
 				<array>
 					<dict>
@@ -511,7 +511,7 @@
 			</dict>
 			<dict>
 				<key>ActivationRule</key>
-				<string>sourceItem.filename CONTAINS "maynotmove" AND action == "Move"</string>
+				<string>sourceItem.filename CONTAINS &quot;maynotmove&quot; AND action == &quot;Move&quot;</string>
 				<key>SubInteractions</key>
 				<array>
 					<dict>
@@ -554,7 +554,7 @@
 			</dict>
 			<dict>
 				<key>ActivationRule</key>
-				<string>sourceItem.filename CONTAINS "cannotmove" AND action == "Move"</string>
+				<string>sourceItem.filename CONTAINS &quot;cannotmove&quot; AND action == &quot;Move&quot;</string>
 				<key>SubInteractions</key>
 				<array>
 					<dict>
@@ -593,7 +593,7 @@
 			</dict>
 			<dict>
 				<key>ActivationRule</key>
-				<string>sourceItem.filename CONTAINS "maynotdelete" AND action == "Delete"</string>
+				<string>sourceItem.filename CONTAINS &quot;maynotdelete&quot; AND action == &quot;Delete&quot;</string>
 				<key>SubInteractions</key>
 				<array>
 					<dict>
@@ -632,7 +632,7 @@
 			</dict>
 			<dict>
 				<key>ActivationRule</key>
-				<string>sourceItem.filename CONTAINS "cannotdelete" AND action == "Delete"</string>
+				<string>sourceItem.filename CONTAINS &quot;cannotdelete&quot; AND action == &quot;Delete&quot;</string>
 				<key>SubInteractions</key>
 				<array>
 					<dict>
@@ -671,7 +671,7 @@
 			</dict>
 			<dict>
 				<key>ActivationRule</key>
-				<string>sourceItem.filename CONTAINS "cannottrash" AND action == "Trash"</string>
+				<string>sourceItem.filename CONTAINS &quot;cannottrash&quot; AND action == &quot;Trash&quot;</string>
 				<key>SubInteractions</key>
 				<array>
 					<dict>
@@ -710,7 +710,7 @@
 			</dict>
 			<dict>
 				<key>ActivationRule</key>
-				<string>sourceItem.filename CONTAINS "cannotrename" AND action == "Rename"</string>
+				<string>sourceItem.filename CONTAINS &quot;cannotrename&quot; AND action == &quot;Rename&quot;</string>
 				<key>SubInteractions</key>
 				<array>
 					<dict>
@@ -733,7 +733,7 @@
 			</dict>
 			<dict>
 				<key>ActivationRule</key>
-				<string>sourceItem.filename CONTAINS "maynottrash" AND action == "Trash"</string>
+				<string>sourceItem.filename CONTAINS &quot;maynottrash&quot; AND action == &quot;Trash&quot;</string>
 				<key>SubInteractions</key>
 				<array>
 					<dict>
@@ -808,7 +808,7 @@
 			</dict>
 			<dict>
 				<key>ActivationRule</key>
-				<string>sourceItem.filename CONTAINS "maynotexclude" AND action == "ExcludeFromSync"</string>
+				<string>sourceItem.filename CONTAINS &quot;maynotexclude&quot; AND action == &quot;ExcludeFromSync&quot;</string>
 				<key>SubInteractions</key>
 				<array>
 					<dict>
@@ -846,6 +846,17 @@
 				</array>
 			</dict>
 		</array>
+	</dict>
+	<key>OSLogPreferences</key>
+	<dict>
+		<key>com.example.apple-samplecode.FruitBasket542329VFSQ.Provider</key>
+		<dict>
+			<key>DEFAULT-OPTIONS</key>
+			<dict>
+				<key>Enable-Private-Data</key>
+				<true/>
+			</dict>
+		</dict>
 	</dict>
 </dict>
 </plist>

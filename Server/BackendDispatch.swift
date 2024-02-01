@@ -171,7 +171,7 @@ public class BackendDispatch: BackendCallRegistration {
             return CommonError.parameterError.asHTTPResponse(backend.encoder)
         }
         if !defaults.ignoreLoggingForEndpoints.contains(request.path) {
-            logger.debug("⭕️ \(backend.displayName)\(request.path): \(String(describing: param)) + \(dataPayload.count) bytes")
+            logger.debug("⭕️ \(backend.displayName, privacy: .public)\(request.path, privacy: .public): \(String(describing: param), privacy: .public) + \(dataPayload.count, privacy: .public) bytes")
         }
         Thread.sleep(forTimeInterval: defaults.responseDelay)
         if Float.random(in: 0..<100) < defaults.errorRate {
@@ -207,9 +207,9 @@ public class BackendDispatch: BackendCallRegistration {
         }
         if !defaults.ignoreLoggingForEndpoints.contains(request.path) {
             if let data = ret.1 {
-                logger.debug("✅ \(backend.displayName)\(request.path): \(String(describing: ret.0)) + \(data.count) bytes")
+                logger.debug("✅ \(backend.displayName, privacy: .public)\(request.path, privacy: .public): \(String(describing: ret.0), privacy: .public) + \(data.count, privacy: .public) bytes")
             } else {
-                logger.debug("✅ \(backend.displayName)\(request.path): \(String(describing: ret.0))")
+                logger.debug("✅ \(backend.displayName, privacy: .public)\(request.path, privacy: .public): \(String(describing: ret.0), privacy: .public)")
             }
         }
         guard let json = try? backend.encoder.encode(ret.0) else { return .internalServerError }

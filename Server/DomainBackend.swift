@@ -102,7 +102,7 @@ public class DomainBackend: NSObject, DispatchBackend {
         do {
             if let lockExpiry = try db.expireLocks() {
                 let timeInterval = lockExpiry.timeIntervalSinceNow
-                logger.debug("⏰ next lock expiry is in \(timeInterval)s for \(self.displayName)")
+                logger.debug("⏰ next lock expiry is in \(timeInterval, privacy: .public)s for \(self.displayName, privacy: .public)")
                 let newSource = DispatchSource.makeTimerSource(flags: [], queue: queue)
                 newSource.setEventHandler { [weak self] in
                     self?.armLockExpiryTimer()
@@ -111,7 +111,7 @@ public class DomainBackend: NSObject, DispatchBackend {
                 newSource.resume()
                 lockExpiryTimerSource = newSource
             } else {
-                logger.debug("⏰ all locks are expired for \(self.displayName)")
+                logger.debug("⏰ all locks are expired for \(self.displayName, privacy: .public)")
                 lockExpiryTimerSource = nil
             }
         } catch let error {

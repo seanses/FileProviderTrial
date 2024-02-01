@@ -84,7 +84,7 @@ class RemoveDomainWindowController: NSWindowController {
                             preservedURL.stopAccessingSecurityScopedResource()
                         }
                     }
-                    self.logger.info("✅ domain was preserved to \(preservedURL)")
+                    self.logger.info("✅ domain was preserved to \(preservedURL, privacy: .public)")
                     NSWorkspace().selectFile(nil, inFileViewerRootedAtPath: preservedURL.path)
                 }
             } catch let error as NSError {

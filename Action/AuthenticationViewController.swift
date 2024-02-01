@@ -62,7 +62,7 @@ class AuthenticationViewController: NSViewController, ConcreteActionViewControll
                 do {
                     try await manager.signalErrorResolved(NSFileProviderError(.notAuthenticated))
                     
-                    self.logger.info("✅ succeeded to signal insufficientQuota error as resolved for \(domain.displayName)")
+                    self.logger.info("✅ succeeded to signal insufficientQuota error as resolved for \(domain.displayName, privacy: .public)")
                     avc.extensionContext.completeRequest()
                 } catch let error as NSError {
                     self.logger.error("❌ failed to signal insufficientQuota error as resolved for \(domain.displayName): \(error)")

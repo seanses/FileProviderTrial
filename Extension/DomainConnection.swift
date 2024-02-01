@@ -112,9 +112,9 @@ public struct DomainConnection {
         request.httpMethod = ParameterType.method.rawValue
 
         if let data = data {
-            logger.debug("🌐 \(displayName)/\(ParameterType.endpoint): \(String(describing: parameter)) + \(data.count) bytes")
+            logger.debug("🌐 \(displayName)/\(ParameterType.endpoint, privacy: .public): \(String(describing: parameter), privacy: .public) + \(data.count, privacy: .public) bytes")
         } else {
-            logger.debug("🌐 \(displayName)/\(ParameterType.endpoint): \(String(describing: parameter))")
+            logger.debug("🌐 \(displayName, privacy: .public)/\(ParameterType.endpoint, privacy: .public): \(String(describing: parameter), privacy: .public)")
         }
 
         let handler = { (downloaded: URL?, response: URLResponse?, error: Error?) -> Void in
@@ -150,9 +150,9 @@ public struct DomainConnection {
                 let data = try Data(contentsOf: downloaded, options: [.alwaysMapped])
                 func finish(_ ret: ParameterType.ReturnType, _ data: Data?) {
                     if let data = data {
-                        self.logger.debug("💟 \(self.displayName)/\(ParameterType.endpoint): \(String(describing: ret)) + \(data.count) bytes")
+                        self.logger.debug("💟 \(self.displayName, privacy: .public)/\(ParameterType.endpoint, privacy: .public): \(String(describing: ret), privacy: .public) + \(data.count, privacy: .public) bytes")
                     } else {
-                        self.logger.debug("💟 \(self.displayName)/\(ParameterType.endpoint): \(String(describing: ret))")
+                        self.logger.debug("💟 \(self.displayName, privacy: .public)/\(ParameterType.endpoint, privacy: .public): \(String(describing: ret), privacy: .public)")
                     }
                     block(.success((ret, data ?? Data())))
                 }

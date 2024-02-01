@@ -20,5 +20,16 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>OSLogPreferences</key>
+	<dict>
+		<key>com.example.apple-samplecode.FruitBasket.Extension</key>
+		<dict>
+			<key>DEFAULT-OPTIONS</key>
+			<dict>
+				<key>Enable-Private-Data</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
 </dict>
 </plist>

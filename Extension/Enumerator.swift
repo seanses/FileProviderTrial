@@ -192,10 +192,16 @@ class ItemEnumerator: NSObject, NSFileProviderEnumerator
 
 }
 
-class WorkingSetEnumerator: ItemEnumerator {
-    init(connection: DomainConnection) {
-        // Enumerate everything from the root, recursively.
-        super.init(enumeratedItemIdentifier: .rootContainer, connection: connection, recursive: true)
+//class WorkingSetEnumerator: ItemEnumerator {
+//    init(connection: DomainConnection) {
+//        // Enumerate everything from the root, recursively.
+//        super.init(enumeratedItemIdentifier: .rootContainer, connection: connection, recursive: true)
+//    }
+//}
+
+class WorkingSetEnumerator: gitxetEnumerator {
+    init() {
+        super.init(enumeratedItemIdentifier: NSFileProviderItemIdentifier("."))
     }
 }
 
@@ -204,5 +210,118 @@ class TrashEnumerator: ItemEnumerator {
         // Enumerate everything from the trash. This isn't recursive;
         // the File Provider framework asks for subitems if relevant.
         super.init(enumeratedItemIdentifier: .trashContainer, connection: connection, recursive: false)
+    }
+}
+
+class gitxetEnumerator: NSObject, NSFileProviderEnumerator {
+    private let logger = Logger(subsystem: "com.example.apple-samplecode.FruitBasket", category: "enumeration")
+    
+    let identifier: String
+    func invalidate() {
+        // todo
+    }
+    
+    init(enumeratedItemIdentifier: NSFileProviderItemIdentifier) {
+        self.identifier = enumeratedItemIdentifier.rawValue
+        //print(enumeratedItemIdentifier)
+        super.init()
+    }
+
+    
+    func enumerateItems(for observer: NSFileProviderEnumerationObserver, startingAt page: NSFileProviderPage) {
+        logger.debug(" enumerating\(self.identifier, privacy: .public)")
+        
+        let entries = gitxetListFile(for: identifier)
+        
+        logger.debug(" enumerating\(entries, privacy: .public)")
+        
+        observer.didEnumerate(entries.compactMap( {
+            return gitxetItem($0)
+        }))
+    }
+    
+    func gitxetListFile(for id: String) -> [gitxetDomainService.gitxetEntry] {
+        let process = Process()
+        process.launchPath = "git-xet"
+        process.arguments = ["xetbox", "ls", id]
+        
+        let output = Pipe()
+        
+        process.standardOutput = output
+        process.launch()
+        let data = output.fileHandleForReading.readDataToEndOfFile()
+        
+        let entries = try! JSONDecoder().decode([gitxetDomainService.gitxetEntry].self, from: data)
+        
+        return entries
+    }
+}
+
+class gitxetItem: NSObject, NSFileProviderItemProtocol {
+    let entry: gitxetDomainService.gitxetEntry
+    let itemIdentifier: NSFileProviderItemIdentifier
+    let parentItemIdentifier: NSFileProviderItemIdentifier
+    
+    init(_ entry: gitxetDomainService.gitxetEntry) {
+        self.entry = entry
+        itemIdentifier = NSFileProviderItemIdentifier(entry.id)
+        parentItemIdentifier = NSFileProviderItemIdentifier(entry.parent)
+    }
+    
+    var filename: String {
+        return entry.name
+    }
+    var contentType: UTType {
+        switch entry.entry_type {
+        case .folder, .root:
+            return .folder
+        case .file:
+            return .item
+        }
+    }
+    
+    var capabilities: NSFileProviderItemCapabilities {
+        var result: NSFileProviderItemCapabilities = [
+            //.allowsAddingSubItems,
+            .allowsContentEnumerating,
+            //.allowsDeleting,
+            .allowsReading,
+            //.allowsRenaming,
+            //.allowsReparenting,
+            //.allowsWriting,
+            //.allowsExcludingFromSync
+        ]
+        if !UserDefaults.sharedContainerDefaults.trashDisabled {
+            result.insert(.allowsTrashing)
+        }
+        return result
+    }
+}
+
+public enum gitxetDomainService {
+    public static let rootItemCodingInfoKey = CodingUserInfoKey(rawValue: "rootItemIdentifier")!
+    public static let trashItemCodingInfoKey = CodingUserInfoKey(rawValue: "trashItemIdentifier")!
+
+    public enum EntryType: String, Codable {
+        case file = "file"
+        case folder = "folder"
+        case root = "root"
+    }
+
+    public struct gitxetEntry: Codable {
+        public let name: String
+        public let id: String
+        public let parent: String
+        public let size: Int64
+        public let entry_type: EntryType
+
+        public init(name: String, id: String, parent: String, deleted: Bool, size: Int64, children: Int?,
+                    type: EntryType) {
+            self.name = name
+            self.id = id
+            self.parent = parent
+            self.size = size
+            self.entry_type = type
+        }
     }
 }

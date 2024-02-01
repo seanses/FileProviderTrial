@@ -50,6 +50,8 @@ public class Extension: NSObject, NSFileProviderReplicatedExtension {
         observation = observedDefaults.observe(\.blockedProcesses, options: [.initial, .new]) { _, change in
             UserDefaults().setValue(change.newValue ?? [], forKey: "NSFileProviderExtensionNonMaterializingProcessNames")
         }
+        
+        logger.debug("Extension init")
     }
 
     public func invalidate() {
@@ -873,10 +875,10 @@ extension Extension {
 
     public func enumerator(for containerItemIdentifier: NSFileProviderItemIdentifier,
                            request: NSFileProviderRequest) throws -> NSFileProviderEnumerator {
-        logger.debug("🧩 enumerator(for \(containerItemIdentifier.rawValue)) @ domainVersion(\(request.domainVersion?.description ?? "<nil>"))")
+        logger.debug("🧩 enumerator(for \(containerItemIdentifier.rawValue, privacy: .public)) @ domainVersion(\(request.domainVersion?.description ?? "<nil>", privacy: .public))")
         switch containerItemIdentifier {
         case .workingSet:
-            return WorkingSetEnumerator(connection: connection)
+            return WorkingSetEnumerator()
         case .trashContainer:
             if UserDefaults.sharedContainerDefaults.trashDisabled {
                 logger.debug("🌀 trashing disabled: throwing noSuchItem error")
@@ -884,7 +886,8 @@ extension Extension {
             }
             return TrashEnumerator(connection: connection)
         default:
-            return ItemEnumerator(enumeratedItemIdentifier: containerItemIdentifier, connection: connection)
+            //return ItemEnumerator(enumeratedItemIdentifier: containerItemIdentifier, connection: connection)
+            return gitxetEnumerator(enumeratedItemIdentifier: containerItemIdentifier)
         }
     }
 

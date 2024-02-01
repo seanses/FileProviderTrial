@@ -93,37 +93,49 @@ class EditDomainWindowController: NSWindowController {
             let displayName = self.displayName
 
             let newDomain = NSFileProviderDomain(identifier: domain.identifier, displayName: displayName)
+            
+//            do {
+//                try await NSFileProviderManager.add(newDomain)
+//            } catch let error as NSError {
+//                self.logger.error("❌ failed to re-add domain \(error)")
+//                self.delegate?.presentError(error)
+//                return
+//            }
+//
+//            DispatchQueue.main.async {
+//                window.sheetParent?.endSheet(window)
+//            }
 
             let oldRoot = allAccounts.first(where: { $0.identifier == domain.identifier.rawValue })?.rootItem
             let newRoot: DomainService.Entry
 
-            if backingItem.indexOfSelectedItem == 0 {
-                do {
-                    let param = AccountService.CreateAccountParameter(displayName: displayName, identifier: domain.identifier.rawValue,
-                                                                      mirroringAccount: nil, remoteOnly: true)
-                    newRoot = try accountConnection.makeSynchronousJSONCall(param, nil, timeout: .seconds(3)).account.rootItem
-                } catch let error as NSError {
-                    self.logger.error("❌ failed to create new account \(error)")
-                    self.delegate?.presentError(error)
-                    return
-                }
-            } else {
-
-                guard let mirroredRoot = backingItem.selectedItem!.representedObject as? DomainService.Entry,
-                let mirroredAccount = allAccounts.first(where: { $0.rootItem.id == mirroredRoot.id }) else {
-                    self.logger.error("❌ failed to setup mirroring account")
-                    return
-                }
-                do {
-                    let param = AccountService.CreateAccountParameter(displayName: displayName, identifier: domain.identifier.rawValue,
-                                                                      mirroringAccount: mirroredAccount.identifier, remoteOnly: true)
-                    newRoot = try accountConnection.makeSynchronousJSONCall(param, nil, timeout: .seconds(3)).account.rootItem
-                } catch let error as NSError {
-                    self.logger.error("❌ failed to create new account \(error)")
-                    self.delegate?.presentError(error)
-                    return
-                }
-            }
+//            if backingItem.indexOfSelectedItem == 0 {
+//                do {
+//                    let param = AccountService.CreateAccountParameter(displayName: displayName, identifier: domain.identifier.rawValue,
+//                                                                      mirroringAccount: nil, remoteOnly: true)
+//                    newRoot = try accountConnection.makeSynchronousJSONCall(param, nil, timeout: .seconds(3)).account.rootItem
+//                } catch let error as NSError {
+//                    self.logger.error("❌ failed to create new account \(error)")
+//                    self.delegate?.presentError(error)
+//                    return
+//                }
+//            } else {
+//
+//                guard let mirroredRoot = backingItem.selectedItem!.representedObject as? DomainService.Entry,
+//                let mirroredAccount = allAccounts.first(where: { $0.rootItem.id == mirroredRoot.id }) else {
+//                    self.logger.error("❌ failed to setup mirroring account")
+//                    return
+//                }
+//                do {
+//                    let param = AccountService.CreateAccountParameter(displayName: displayName, identifier: domain.identifier.rawValue,
+//                                                                      mirroringAccount: mirroredAccount.identifier, remoteOnly: true)
+//                    newRoot = try accountConnection.makeSynchronousJSONCall(param, nil, timeout: .seconds(3)).account.rootItem
+//                } catch let error as NSError {
+//                    self.logger.error("❌ failed to create new account \(error)")
+//                    self.delegate?.presentError(error)
+//                    return
+//                }
+//            }
 
             if let existing = oldRoot,
                 newRoot.id != existing.id {

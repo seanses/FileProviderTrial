@@ -33,11 +33,11 @@ private actor Notifier {
         guard !self.itemsToNotify.isEmpty else { return }
         for entry in entries {
             guard let manager = NSFileProviderManager(for: entry.domain) else { continue }
-            logger.debug("🔆 notifying \(entry.domain.prettyDescription) for changes on \(self.itemsToNotify)")
+            logger.debug("🔆 notifying \(entry.domain.prettyDescription, privacy: .public) for changes on \(self.itemsToNotify, privacy: .public)")
             do {
                 try await manager.signalEnumerator(for: .workingSet)
             } catch let error as NSError {
-                logger.debug("❌ failed to signal working set for \(entry.domain.prettyDescription): \(error)")
+                logger.debug("❌ failed to signal working set for \(entry.domain.prettyDescription, privacy: .public): \(error, privacy: .public)")
             }
         }
         self.itemsToNotify.removeAll()
@@ -46,19 +46,19 @@ private actor Notifier {
     func signalItems(_ entries: [DomainEntry]) async {
         for entry in entries {
             guard let manager = NSFileProviderManager(for: entry.domain) else { continue }
-            logger.debug("🔆 notifying \(entry.domain.prettyDescription) for auth status change")
+            logger.debug("🔆 notifying \(entry.domain.prettyDescription, privacy: .public) for auth status change")
             if entry.authenticated || UserDefaults.sharedContainerDefaults.ignoreAuthentication {
                 do {
                     try await manager.signalErrorResolved(NSFileProviderError(.notAuthenticated))
                 } catch let error as NSError {
-                    logger.error("❌ failed to signal authentication error resolved for \(entry.domain.prettyDescription): \(error)")
+                    logger.error("❌ failed to signal authentication error resolved for \(entry.domain.prettyDescription, privacy: .public): \(error, privacy: .public)")
                 }
             } else {
                 // Notify the workingSet because FileProvider needs to save the new unauthenticated state.
                 do {
                     try await manager.signalEnumerator(for: .workingSet)
                 } catch let error as NSError {
-                    logger.error("❌ failed to signal working set for \(entry.domain.prettyDescription): \(error)")
+                    logger.error("❌ failed to signal working set for \(entry.domain.prettyDescription, privacy: .public): \(error, privacy: .public)")
                 }
             }
         }
@@ -132,44 +132,44 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSXPCListenerDelegate {
         return "\(shortVersion) (\(version))"
     }
 
-    let notifyThrottle: Throttle
+    //let notifyThrottle: Throttle
 
     let databaseURL = try! FileManager().url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
         .appendingPathComponent("files.db")
-    let builtinServer: StandaloneServer
+    //let builtinServer: StandaloneServer
 
     @MainActor
     override init() {
-        notifyThrottle = Throttle(timeout: .milliseconds(500), "notify throttle")
-        self.contentBasedChunkStore = try! LocalContentBasedChunkStore()
-        builtinServer = StandaloneServer(databaseURL, contentBasedChunkStore: self.contentBasedChunkStore)
+//        notifyThrottle = Throttle(timeout: .milliseconds(500), "notify throttle")
+//        self.contentBasedChunkStore = try! LocalContentBasedChunkStore()
+//        builtinServer = StandaloneServer(databaseURL, contentBasedChunkStore: self.contentBasedChunkStore)
 
         super.init()
 
-        do {
-            try builtinServer.run()
-        } catch let error {
-            presentError(error)
-        }
-
-        notifyThrottle.handler = { [weak self] in
-            guard let strongSelf = self else {
-                return
-            }
-            Task {
-                await strongSelf.serverChangeReceived()
-            }
-        }
-        notifyThrottle.resume()
-
-        DistributedNotificationCenter.default().addObserver(self, selector: #selector(AppDelegate.itemsChanged(_:)),
-                                                            name: .itemsChanged, object: nil, suspensionBehavior: .deliverImmediately)
-
-        Task {
-            await setupDomainPipe()
-            NotificationCenter.default.post(Notification(name: NSNotification.Name.fileProviderDomainDidChange))
-            DistributedNotificationCenter.default().post(Notification(name: .accountsDidChange))
-        }
+//        do {
+//            try builtinServer.run()
+//        } catch let error {
+//            presentError(error)
+//        }
+//
+//        notifyThrottle.handler = { [weak self] in
+//            guard let strongSelf = self else {
+//                return
+//            }
+//            Task {
+//                await strongSelf.serverChangeReceived()
+//            }
+//        }
+//        notifyThrottle.resume()
+//
+//        DistributedNotificationCenter.default().addObserver(self, selector: #selector(AppDelegate.itemsChanged(_:)),
+//                                                            name: .itemsChanged, object: nil, suspensionBehavior: .deliverImmediately)
+//
+//        Task {
+//            await setupDomainPipe()
+//            NotificationCenter.default.post(Notification(name: NSNotification.Name.fileProviderDomainDidChange))
+//            DistributedNotificationCenter.default().post(Notification(name: .accountsDidChange))
+//        }
     }
 
     @objc
@@ -177,7 +177,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSXPCListenerDelegate {
         guard let object = notification.object as? String,
               let id = Int64(object) else { return }
         Task { await notifier.notify(for: DomainService.ItemIdentifier(id)) }
-        notifyThrottle.signal()
+        //notifyThrottle.signal()
     }
 
     func updateItemCount() async {
@@ -187,7 +187,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSXPCListenerDelegate {
                 self.itemCount = res.itemCount
             }
         } catch let error as NSError {
-            logger.error("Error updating item count: \(error)")
+            logger.error("Error updating item count: \(error, privacy: .public)")
         }
     }
 
@@ -201,7 +201,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSXPCListenerDelegate {
     nonisolated func applicationDidFinishLaunching(_ aNotification: Notification) {
         Task { @MainActor in
             window.isExcludedFromWindowsMenu = true
-            logger.info("🌅  FruitBasket \(self.versionString) started")
+            logger.info("🌅  FruitBasket \(self.versionString, privacy: .public) started")
         }
     }
 
@@ -216,9 +216,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSXPCListenerDelegate {
 
     nonisolated func applicationWillTerminate(_ aNotification: Notification) {
         Task { @MainActor in
-            logger.info("🌃  FruitBasket \(self.versionString) terminating")
+            logger.info("🌃  FruitBasket \(self.versionString, privacy: .public) terminating")
             self.contentBasedChunkStore.close()
-            logger.info("🌃  FruitBasket \(self.versionString) terminated")
+            logger.info("🌃  FruitBasket \(self.versionString, privacy: .public) terminated")
         }
     }
 
@@ -241,15 +241,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSXPCListenerDelegate {
             guard let manager = NSFileProviderManager(for: entry.domain) else { return }
             self.logger.info(
 """
-🔆 notifying \(entry.domain.prettyDescription) for account quota change, \
-now: \(String(describing: UserDefaults.sharedContainerDefaults.accountQuota))
+🔆 notifying \(entry.domain.prettyDescription, privacy: .public) for account quota change, \
+now: \(String(describing: UserDefaults.sharedContainerDefaults.accountQuota), privacy: .public)
 """)
             Task {
                 do {
                     try await manager.signalErrorResolved(NSFileProviderError(.insufficientQuota))
-                    self.logger.info("✅ succeeded to signal insufficientQuota error as resolved for \(entry.domain.prettyDescription)")
+                    self.logger.info("✅ succeeded to signal insufficientQuota error as resolved for \(entry.domain.prettyDescription, privacy: .public)")
                 } catch  let error as NSError {
-                    self.logger.error("❌ failed to signal insufficientQuota error as resolved for \(entry.domain.prettyDescription): \(error)")
+                    self.logger.error("❌ failed to signal insufficientQuota error as resolved for \(entry.domain.prettyDescription, privacy: .public): \(error, privacy: .public)")
                 }
             }
         }
@@ -263,8 +263,8 @@ now: \(String(describing: UserDefaults.sharedContainerDefaults.accountQuota))
         knownDomains = domains.0
         knownAccounts = domains.1
 
-        await updateItemCount()
-        updateListeners()
+//        await updateItemCount()
+//        updateListeners()
     }
 
     func findNextFruit() -> String {
@@ -286,7 +286,9 @@ now: \(String(describing: UserDefaults.sharedContainerDefaults.accountQuota))
 
     @IBOutlet var domainArrayController: NSArrayController!
     @IBAction func addDomain(_ sender: AnyObject?) {
-        let new = NSFileProviderDomain(identifier: NSFileProviderDomainIdentifier(rawValue: NSUUID().uuidString), displayName: findNextFruit())
+//        let new = NSFileProviderDomain(identifier: NSFileProviderDomainIdentifier(rawValue: NSUUID().uuidString), displayName: findNextFruit())
+        
+        let new = NSFileProviderDomain(identifier: NSFileProviderDomainIdentifier(rawValue: "."), displayName: "XetBox")
 
         let controller = EditDomainWindowController(new, accountConnection, knownDomains, knownAccounts)
         guard let window = controller.window else { fatalError() }
@@ -341,13 +343,13 @@ now: \(String(describing: UserDefaults.sharedContainerDefaults.accountQuota))
                 do {
                     try await manager.reconnect()
                 } catch let error as NSError {
-                    self.logger.error("❌ failed to reconnect \(entry.domain.prettyDescription): \(error)")
+                    self.logger.error("❌ failed to reconnect \(entry.domain.prettyDescription, privacy: .public): \(error, privacy: .public)")
                 }
             } else {
                 do {
                     try await manager.disconnect(reason: "Disconnected in UI", options: .temporary)
                 } catch let error as NSError {
-                    self.logger.error("❌ failed to disconnect \(entry.domain.prettyDescription): \(error)")
+                    self.logger.error("❌ failed to disconnect \(entry.domain.prettyDescription, privacy: .public): \(error, privacy: .public)")
                 }
             }
         }
@@ -561,24 +563,24 @@ now: \(String(describing: UserDefaults.sharedContainerDefaults.accountQuota))
         FIFinderSyncController.showExtensionManagementInterface()
     }
 
-    func updateListeners() {
-        domainEntries = knownDomains.compactMap { domain in
-            if let port = domain.identifier.port, port != builtinServer.port {
-                logger.info("domain \(String(describing: domain.identifier)) isn't running on main app port, not adding backend")
-                return DomainEntry(domain: domain, account: nil, uploadProgress: nil, downloadProgress: nil)
-            }
-            if let associated = knownAccounts.first(where: { $0.identifier == domain.identifier.rawValue }) {
-                let manager = NSFileProviderManager(for: domain)!
-                manager.signalErrorResolved(NSFileProviderError(.serverUnreachable)) { _ in }
-
-                return DomainEntry(domain: domain, account: associated, uploadProgress: manager.globalProgress(for: .uploading),
-                                   downloadProgress: manager.globalProgress(for: .downloading))
-            }
-            logger.info("domain \(String(describing: domain.identifier)) doesn't have a corresponding account, removing domain")
-            NSFileProviderManager.remove(domain) { _ in }
-            return nil
-        }
-    }
+//    func updateListeners() {
+//        domainEntries = knownDomains.compactMap { domain in
+//            if let port = domain.identifier.port, port != builtinServer.port {
+//                logger.info("domain \(String(describing: domain.identifier)) isn't running on main app port, not adding backend")
+//                return DomainEntry(domain: domain, account: nil, uploadProgress: nil, downloadProgress: nil)
+//            }
+//            if let associated = knownAccounts.first(where: { $0.identifier == domain.identifier.rawValue }) {
+//                let manager = NSFileProviderManager(for: domain)!
+//                manager.signalErrorResolved(NSFileProviderError(.serverUnreachable)) { _ in }
+//
+//                return DomainEntry(domain: domain, account: associated, uploadProgress: manager.globalProgress(for: .uploading),
+//                                   downloadProgress: manager.globalProgress(for: .downloading))
+//            }
+//            logger.info("domain \(String(describing: domain.identifier)) doesn't have a corresponding account, removing domain")
+//            NSFileProviderManager.remove(domain) { _ in }
+//            return nil
+//        }
+//    }
 }
 
 class MillisecondTransformer: ValueTransformer {
