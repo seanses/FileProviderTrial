@@ -230,6 +230,8 @@ extension DomainService {
                 self.quotaRemaining = quotaRemaining
                 self.quotaTotal = quotaTotal
             }
+            
+            public static let empty = UserInfo(conflictCount: nil, originatorName: nil, symlinkTargetPath: nil, implicitLockOwner: nil, quotaRemaining: nil, quotaTotal: nil)
         }
         public let name: String
         public let id: ItemIdentifier

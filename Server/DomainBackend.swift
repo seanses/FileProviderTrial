@@ -24,6 +24,8 @@ public class DomainBackend: NSObject, DispatchBackend {
     let rootItemIdentifier: DomainService.ItemIdentifier
     let trashItemIdentifier: DomainService.ItemIdentifier
     public let queue: DispatchQueue
+    
+    var map: [Int64: DomainService.Entry]
 
     static let trashItemName = ".Trash"
 
@@ -38,6 +40,7 @@ public class DomainBackend: NSObject, DispatchBackend {
         self.displayName = account.displayName
         queue = DispatchQueue(label: "backend for \(displayName)")
         self.identifier = identifier
+        self.map = [Int64: DomainService.Entry]()
         let root = account.rootItem
         rootItemIdentifier = root.id
 
@@ -138,8 +141,34 @@ extension Bool: XAttrSettable {
     }
 }
 
+public struct GitXetEntry: Codable {
+    public let name: String
+    public let id: String
+    public let parent: String
+    public let size: Int64
+    public let entry_type: String
+}
+
 extension DomainBackend {
-    func listFolder(_ param: DomainService.ListFolderParameter) throws -> DomainService.ListFolderReturn {
+    func gitxetJSONGenericCall(args: [String]) -> String {
+        let process = Process()
+        process.currentDirectoryPath = "/Users/di/.xet/workspace"
+        process.executableURL = URL(fileURLWithPath: "/usr/local/bin/git-xet")
+        process.arguments = args
+        
+        let out = Pipe()
+        
+        process.standardOutput = out
+        try! process.run()
+        
+        let data = out.fileHandleForReading.readDataToEndOfFile()
+        
+        let json_str = String(data: data, encoding: .utf8)!
+        
+        return json_str
+    }
+    
+    func _listFolder(_ param: DomainService.ListFolderParameter) throws -> DomainService.ListFolderReturn {
         let ret = try db.listFiles(parent: param.folderIdentifier, cursor: param.startingCursor, recursive: param.recursive)
         let rank = DomainService.RankToken(rank: db.latestRank(), tokenCheckNumber: account.tokenCheckNumber)
 
@@ -147,19 +176,70 @@ extension DomainBackend {
         let deleted = files.compactMap { $0.deleted ? $0.id : nil }
         return DomainService.ListFolderReturn(entries: files.filter { !$0.deleted }, deletedEntries: deleted, cursor: ret.cursor, rank: rank)
     }
-
+    
+    func listFolder(_ param: DomainService.ListFolderParameter) throws -> DomainService.ListFolderReturn {
+        let json_str = gitxetJSONGenericCall(args: ["xetbox", "ls", "."])
+        
+        logger.debug("listFolder: \(json_str, privacy: .public)")
+        
+        let entries = try JSONDecoder().decode([GitXetEntry].self, from: json_str.utf8Data)
+        
+        logger.debug("listFolder, decoded entries: \(entries, privacy: .public)")
+        
+        let _entries = entries.map() { entry in
+            
+            let id = Int64(entry.name.hashValue)
+            let parentid = Int64(entry.parent.hashValue)
+            
+            let dsentry = DomainService.Entry(name: entry.name, id: DomainService.ItemIdentifier(id), parent: DomainService.ItemIdentifier(parentid), revision: DomainService.Version.zero, deleted: false, size: entry.size, children: nil, type: entry.entry_type == "file" ? DomainService.EntryType.file : DomainService.EntryType.folder, metadata: DomainService.EntryMetadata.empty, userInfo: DomainService.Entry.UserInfo.empty)
+            
+            map[id] = dsentry
+            
+            logger.debug("listFolder: in the map \(self.map, privacy: .public)")
+            
+            return dsentry
+        }
+        
+        logger.debug("listFolder, decoded and mapped entries: \(_entries, privacy: .public)")
+        
+        let rank = DomainService.RankToken(rank: 0, tokenCheckNumber: account.tokenCheckNumber)
+        
+        return DomainService.ListFolderReturn(entries: _entries, deletedEntries: nil, cursor: nil, rank: rank)
+    }
+    
     func listChanges(_ param: DomainService.ListChangesParameter) throws -> DomainService.ListChangesReturn {
-        guard param.startingRank.tokenCheckNumber == account.tokenCheckNumber else { throw CommonError.tokenExpired }
-        let ret = try db.listChanges(parent: param.folderIdentifier, rank: param.startingRank.rank, recursive: param.recursive)
-
-        let files = ret.entries
-        let deleted = files.compactMap { $0.deleted ? $0.id : nil }
-        let rank = DomainService.RankToken(rank: ret.rank, tokenCheckNumber: account.tokenCheckNumber)
-        return DomainService.ListChangesReturn(entries: files.filter { !$0.deleted }, deletedEntries: deleted, rank: rank, hasMore: ret.moreComing)
+        
+        let json_str = gitxetJSONGenericCall(args: ["xetbox", "ls", "."])
+        
+        logger.debug("listChanges: \(json_str, privacy: .public)")
+        
+        let entries = try JSONDecoder().decode([GitXetEntry].self, from: json_str.utf8Data)
+        
+        logger.debug("listChanges, decoded entries: \(entries, privacy: .public)")
+        
+        let _entries = entries.map() { entry in
+            
+            let id = Int64(entry.name.hashValue)
+            let parentid = Int64(entry.parent.hashValue)
+            
+            let dsentry = DomainService.Entry(name: entry.name, id: DomainService.ItemIdentifier(id), parent: DomainService.ItemIdentifier(parentid), revision: DomainService.Version.zero, deleted: false, size: entry.size, children: nil, type: entry.entry_type == "file" ? DomainService.EntryType.file : DomainService.EntryType.folder, metadata: DomainService.EntryMetadata.empty, userInfo: DomainService.Entry.UserInfo.empty)
+            
+            map[id] = dsentry
+            
+            logger.debug("listChanges: in the map \(self.map, privacy: .public)")
+            
+            return dsentry
+        }
+        
+        logger.debug("listChanges, decoded and mapped entries: \(_entries, privacy: .public)")
+        
+        let rank = DomainService.RankToken(rank: 0, tokenCheckNumber: account.tokenCheckNumber)
+        // let rank = DomainService.RankToken(rank: ret.rank, tokenCheckNumber: account.tokenCheckNumber)
+        return DomainService.ListChangesReturn(entries: _entries, deletedEntries: nil, rank: rank, hasMore: false)
     }
 
     func latestRank(_ param: DomainService.LatestRankParameter) throws -> DomainService.LatestRankReturn {
-        return DomainService.LatestRankReturn(rank: DomainService.RankToken(rank: db.latestRank(), tokenCheckNumber: account.tokenCheckNumber))
+        return DomainService.LatestRankReturn(rank: DomainService.RankToken(rank: 0, tokenCheckNumber: account.tokenCheckNumber))
     }
 
     // Pass the content storage type in the HTTP call, and convert it to a content
@@ -310,8 +390,31 @@ extension DomainBackend {
         }
     }
 
-    func fetchItem(_ param: DomainService.FetchItemParameter) throws -> DomainService.FetchItemReturn {
+    func _fetchItem(_ param: DomainService.FetchItemParameter) throws -> DomainService.FetchItemReturn {
         return DomainService.FetchItemReturn(item: try db.fetchItem(param.itemIdentifier))
+    }
+     
+    func fetchItem(_ param: DomainService.FetchItemParameter) throws -> DomainService.FetchItemReturn {
+        logger.debug("fetchItem: \(param.itemIdentifier.id, privacy: .public)")
+        
+        if let entry = map[param.itemIdentifier.id] {
+            return DomainService.FetchItemReturn(item: entry)
+        } else {
+//            let filename = "."
+//            let id = Int64(filename.hashValue)
+//            let parent = ""
+//            let parentid = Int64(parent.hashValue)
+//            
+//            let dsentry = DomainService.Entry(name: root, id: DomainService.ItemIdentifier(id), parent: DomainService.ItemIdentifier(parentid), revision: DomainService.Version.zero, deleted: false, size: 0, children: nil, type: DomainService.EntryType.folder, metadata: DomainService.EntryMetadata.emptyFolder, userInfo: DomainService.Entry.UserInfo.empty)
+            
+            let filename = ".gitattributes"
+            let id = Int64(filename.hashValue)
+            let parentid = id
+            
+            let dsentry = DomainService.Entry(name: filename, id: DomainService.ItemIdentifier(id), parent: DomainService.ItemIdentifier(parentid), revision: DomainService.Version.zero, deleted: false, size: 10, children: nil, type: DomainService.EntryType.file, metadata: DomainService.EntryMetadata.emptyFolder, userInfo: DomainService.Entry.UserInfo.empty)
+            
+            return DomainService.FetchItemReturn(item: dsentry)
+        }
     }
 
     func downloadItem(_ param: DomainService.DownloadItemParameter) throws -> (DomainService.DownloadItemReturn, Data) {

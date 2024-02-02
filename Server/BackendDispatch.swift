@@ -171,7 +171,7 @@ public class BackendDispatch: BackendCallRegistration {
             return CommonError.parameterError.asHTTPResponse(backend.encoder)
         }
         if !defaults.ignoreLoggingForEndpoints.contains(request.path) {
-            logger.debug("⭕️ \(backend.displayName)\(request.path): \(String(describing: param)) + \(dataPayload.count) bytes")
+            logger.debug("⭕️ \(backend.displayName, privacy: .public)\(request.path, privacy: .public): \(String(describing: param), privacy: .public) + \(dataPayload.count, privacy: .public) bytes")
         }
         Thread.sleep(forTimeInterval: defaults.responseDelay)
         if Float.random(in: 0..<100) < defaults.errorRate {
@@ -202,14 +202,14 @@ public class BackendDispatch: BackendCallRegistration {
             logger.error("❌ \(backend.displayName)\(request.path): \(String(describing: error.errorDescription))")
             return error.asHTTPResponse(backend.encoder)
         } catch let error as NSError {
-            logger.error("❌ \(backend.displayName)\(request.path): unknown error \(error)")
+            logger.error("❌ \(backend.displayName, privacy: .public)\(request.path, privacy: .public): unknown error \(error, privacy: .public)")
             return .internalServerError
         }
         if !defaults.ignoreLoggingForEndpoints.contains(request.path) {
             if let data = ret.1 {
-                logger.debug("✅ \(backend.displayName)\(request.path): \(String(describing: ret.0)) + \(data.count) bytes")
+                logger.debug("✅ \(backend.displayName, privacy: .public)\(request.path, privacy: .public): \(String(describing: ret.0), privacy: .public) + \(data.count, privacy: .public) bytes")
             } else {
-                logger.debug("✅ \(backend.displayName)\(request.path): \(String(describing: ret.0))")
+                logger.debug("✅ \(backend.displayName, privacy: .public)\(request.path, privacy: .public): \(String(describing: ret.0), privacy: .public)")
             }
         }
         guard let json = try? backend.encoder.encode(ret.0) else { return .internalServerError }

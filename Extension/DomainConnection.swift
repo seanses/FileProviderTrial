@@ -150,9 +150,9 @@ public struct DomainConnection {
                 let data = try Data(contentsOf: downloaded, options: [.alwaysMapped])
                 func finish(_ ret: ParameterType.ReturnType, _ data: Data?) {
                     if let data = data {
-                        self.logger.debug("💟 \(self.displayName)/\(ParameterType.endpoint): \(String(describing: ret)) + \(data.count) bytes")
+                        self.logger.debug("💟 \(self.displayName, privacy: .public)/\(ParameterType.endpoint, privacy: .public): \(String(describing: ret), privacy: .public) + \(data.count, privacy: .public) bytes")
                     } else {
-                        self.logger.debug("💟 \(self.displayName)/\(ParameterType.endpoint): \(String(describing: ret))")
+                        self.logger.debug("💟 \(self.displayName, privacy: .public)/\(ParameterType.endpoint, privacy: .public): \(String(describing: ret), privacy: .public)")
                     }
                     block(.success((ret, data ?? Data())))
                 }
